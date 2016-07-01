@@ -36,6 +36,7 @@ function setup_client {
 
 function build_model {
 
+    rm -rf /seldon-data/seldon-models/ml100k/matrix-factorization/1
     luigi --module seldon.luigi.spark SeldonMatrixFactorization --local-schedule --client ml100k --startDay 1
 
 }
@@ -65,6 +66,8 @@ function configure_runtime_scorer {
 }
 EOF
     seldon-cli rec_alg --action commit --client-name ml100k
+    #pull updated conf from zookeeper so its safe
+    seldon-cli client --action zk_pull
 }
 
 function create_recommender {

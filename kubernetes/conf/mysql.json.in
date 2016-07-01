@@ -9,7 +9,8 @@
             "metadata": {
                 "name": "mysql",
                 "labels": {
-                    "name": "mysql"
+                    "name": "mysql",
+		    "service" : "seldon"
                 }
             },
             "spec": {
@@ -22,7 +23,8 @@
                 "containers": [
                     {
                         "name": "mysql",
-                        "image": "seldonio/mysql:1.0",
+                        "image": "seldonio/mysql:%SELDON_MYSQL_IMAGE_VERSION%",
+			"imagePullPolicy": "IfNotPresent",
                         "ports": [
                             {
                                 "name": "mysql",
@@ -36,7 +38,9 @@
                                 "value": "mypass"
                             }
                         ],
-                        "resources": {},
+                        "resources": {
+			    %MYSQL_RESOURCES%
+				     },
                         "volumeMounts": [
                             {
                                 "name": "data-volume",
@@ -53,7 +57,8 @@
             "metadata": {
                 "name": "mysql",
                 "labels": {
-                    "name": "mysql"
+                    "name": "mysql",
+		    "service" : "seldon"
                 }
             },
             "spec": {

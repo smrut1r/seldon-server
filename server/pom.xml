@@ -7,7 +7,7 @@
     <parent>
         <groupId>io.seldon</groupId>
         <artifactId>seldon-parent</artifactId>
-        <version>1.3.1</version>
+        <version>1.3.4</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
     <artifactId>seldon-server</artifactId>
@@ -178,11 +178,6 @@
             <version>4.8.2</version>
             <scope>test</scope>
         </dependency>
-        <!--dependency>
-            <groupId>io.seldon</groupId>
-            <artifactId>seldon-server-config-local</artifactId>
-            <version>${project.version}</version>
-        </dependency-->
         <dependency>
             <groupId>org.datanucleus</groupId>
             <artifactId>datanucleus-core</artifactId>

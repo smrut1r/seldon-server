@@ -2,7 +2,10 @@
     "kind": "Pod",
     "apiVersion": "v1",
     "metadata": {
-        "name": "seldon-control"
+        "name": "seldon-control",
+        "labels": {
+            "service": "seldon"
+        }
     },
     "spec": {
         "volumes": [
@@ -14,7 +17,7 @@
         "containers": [
             {
                 "name": "seldon-shell",
-                "image": "seldonio/seldon-control:1.3_v7",
+                "image": "seldonio/seldon-control:%SELDON_CONTROL_IMAGE_VERSION%",
                 "command": [
                     "sleep",
                     "infinity"
