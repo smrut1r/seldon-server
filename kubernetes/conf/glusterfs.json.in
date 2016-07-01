@@ -1,0 +1,52 @@
+{
+  "kind": "Endpoints",
+  "apiVersion": "v1",
+  "metadata": {
+    "name": "glusterfs-cluster",
+    "labels": {
+	"component" : "glusterfs",
+	"service" : "seldon"
+    }
+  },
+  "subsets": [
+    {
+      "addresses": [
+        {
+          "ip": "%GLUSTERFS_IP1%"
+        }
+      ],
+      "ports": [
+        {
+          "port": 1
+        }
+      ]
+    },
+    {
+      "addresses": [
+        {
+          "ip": "%GLUSTERFS_IP2%"
+        }
+      ],
+      "ports": [
+        {
+          "port": 1
+        }
+      ]
+    }
+  ]
+}
+{
+  "kind": "Service",
+  "apiVersion": "v1",
+  "metadata": {
+    "name": "glusterfs-cluster",
+    "labels": {
+	"service" : "seldon"
+    }
+  },
+  "spec": {
+    "ports": [
+      {"port": 1}
+    ]
+  }
+}

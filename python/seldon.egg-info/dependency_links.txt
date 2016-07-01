@@ -1,0 +1,1 @@
+https://github.com/SeldonIO/wabbit_wappa/archive/3.0.2.zip#egg=wabbit-wappa-3.0.2

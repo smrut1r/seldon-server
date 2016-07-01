@@ -1,0 +1,37 @@
+{
+    "kind": "Pod",
+    "apiVersion": "v1",
+    "metadata": {
+        "name": "seldon-control",
+        "labels": {
+            "service": "seldon"
+        }
+    },
+    "spec": {
+        "volumes": [
+            {
+                "name": "data-volume",
+                %DATA_VOLUME%
+            }
+        ],
+        "containers": [
+            {
+                "name": "seldon-shell",
+                "image": "seldonio/seldon-control:%SELDON_CONTROL_IMAGE_VERSION%",
+                "command": [
+                    "sleep",
+                    "infinity"
+                ],
+                "volumeMounts": [
+                    {
+                        "name": "data-volume",
+                        "mountPath": "/seldon-data"
+                    }
+                ],
+                "terminationMessagePath": "/dev/termination-log",
+                "imagePullPolicy": "IfNotPresent"
+            }
+        ],
+	"terminationGracePeriodSeconds": 0
+    }
+}

@@ -1,0 +1,10 @@
+Metadata-Version: 1.0
+Name: seldon
+Version: 2.0.1
+Summary: Seldon Python Utilities
+Home-page: https://github.com/SeldonIO/seldon-server
+Author: Clive Cox
+Author-email: support@seldon.io
+License: Apache 2 License
+Description: UNKNOWN
+Platform: UNKNOWN

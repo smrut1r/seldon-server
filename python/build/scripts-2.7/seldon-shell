@@ -1,0 +1,6 @@
+#!python
+
+import seldon.shell
+
+seldon.shell.start_seldonshell()
+

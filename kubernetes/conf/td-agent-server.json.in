@@ -1,0 +1,76 @@
+{
+    "kind": "List",
+    "apiVersion": "v1",
+    "items": [
+        {
+            "kind": "Pod",
+            "apiVersion": "v1",
+            "metadata": {
+                "name": "td-agent-server",
+                "labels": {
+                    "name": "td-agent-server",
+		    "service" : "seldon"
+                }
+            },
+            "spec": {
+                "volumes": [
+                    {
+                        "name": "data-volume",
+                        %DATA_VOLUME%
+                    }
+                ],
+                "containers": [
+                    {
+                        "name": "td-agent-server",
+                        "image": "seldonio/td-agent-server:%SELDON_TDAGENT_SERVER_IMAGE_VERSION%",
+                        "ports": [
+                            {
+                                "containerPort": 24224,
+                                "protocol": "TCP"
+                            }
+                        ],
+                        "volumeMounts": [
+                            {
+                                "name": "data-volume",
+                                "mountPath": "/seldon-data"
+                            }
+                        ]
+                    }
+                ]
+            }
+        },
+        {
+            "kind": "Service",
+            "apiVersion": "v1",
+            "metadata": {
+                "name": "td-agent-server",
+                "creationTimestamp": null,
+                "labels": {
+                    "name": "td-agent-server",
+		    "service" : "seldon"
+                }
+            },
+            "spec": {
+                "ports": [
+                    {
+                        "name": "tcpport",
+                        "protocol": "TCP",
+                        "port": 24224,
+                        "targetPort": 24224
+                    },
+                    {
+                        "name": "udpport",
+                        "protocol": "UDP",
+                        "port": 24224,
+                        "targetPort": 24224
+                    }
+                ],
+                "selector": {
+                    "name": "td-agent-server"
+                },
+                "type": "ClusterIP",
+                "sessionAffinity": "None"
+            }
+        }
+    ]
+}
