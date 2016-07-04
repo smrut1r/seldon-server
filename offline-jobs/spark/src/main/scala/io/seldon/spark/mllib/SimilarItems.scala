@@ -33,8 +33,10 @@ import org.apache.spark.mllib.linalg.SparseVector
 import org.apache.spark.mllib.linalg.distributed.RowMatrix
 import org.apache.spark.mllib.linalg.distributed.MatrixEntry
 import io.seldon.spark.SparkUtils
+
 import scala.util.Random
 import io.seldon.spark.zookeeper.ZkCuratorHandler
+import org.apache.spark.rdd.RDD
 
 case class SimilarItemsConfig(
     client : String = "",
@@ -139,8 +141,8 @@ class SimilarItems(private val sc : SparkContext,config : SimilarItemsConfig) {
   {
     r.columnSimilarities(dimsumThreshold).entries
   }
-  
-  
+
+
   
   def run()
   {
@@ -155,7 +157,7 @@ class SimilarItems(private val sc : SparkContext,config : SimilarItemsConfig) {
     val numItems = itemsFiltered.keys.distinct().count()
     println("num items : "+numItems)
     
-    val maxItem = itemsFiltered.keys.max() + 1
+    val maxItem = itemsFiltered.keys.max() + 1 //numItems.toInt
     
     val users = itemsFiltered.map{case (item,user) => (user,item)}
 
