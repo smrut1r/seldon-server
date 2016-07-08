@@ -23,22 +23,20 @@
 
 package io.seldon.topics;
 
+import io.seldon.api.Util;
+import io.seldon.api.resource.ConsumerBean;
 import io.seldon.clustering.recommender.ItemRecommendationAlgorithm;
 import io.seldon.clustering.recommender.ItemRecommendationResultSet;
 import io.seldon.clustering.recommender.ItemRecommendationResultSet.ItemRecommendationResult;
 import io.seldon.clustering.recommender.RecommendationContext;
+import io.seldon.general.Action;
 import io.seldon.items.RecentItemsWithTagsManager;
 import io.seldon.recommendation.ItemFilter;
 import io.seldon.recommendation.ItemIncluder;
 import io.seldon.recommendation.RecommendationUtils;
 import io.seldon.topics.TopicFeaturesManager.TopicFeaturesStore;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 import org.apache.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -72,6 +70,15 @@ public class RecentTopicModelRecommender implements ItemRecommendationAlgorithm 
 	@Override
 	public ItemRecommendationResultSet recommend(String client,
 			Long user, Set<Integer> dimensions,int maxRecsCount, RecommendationContext ctxt,  List<Long> recentItemInteractions) {
+		ConsumerBean c = new ConsumerBean(client);
+		Collection<Action> recentUserBuyActions = Util.getActionPeer(c).getRecentUserActions(user, 3, 10); // 3 as buy
+		Set<Long> recentUserActionSet = new HashSet<Long>();
+		for(Action a : recentUserBuyActions){
+			recentUserActionSet.add(a.getItemId());
+		}
+		recentUserActionSet.addAll(recentItemInteractions);
+		recentItemInteractions = new ArrayList<>(recentUserActionSet);
+
 		RecommendationContext.OptionsHolder options = ctxt.getOptsHolder();
 		Integer	tagAttrId = options.getIntegerOption(ATTR_ID_PROPERTY_NAME);
 		String tagTable = options.getStringOption(TABLE_PROPERTY_NAME);
@@ -88,6 +95,7 @@ public class RecentTopicModelRecommender implements ItemRecommendationAlgorithm 
 		if (ctxt == null || ctxt.getContextItems() == null || ctxt.getContextItems().size() == 0)
 		{
 			logger.warn("Not items passed in to recommend from. For client "+client);
+			ctxt.getContextItems().addAll(recentItemInteractions);
 			return new ItemRecommendationResultSet(Collections.<ItemRecommendationResult>emptyList(), name);
 		}
 		

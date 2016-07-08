@@ -335,6 +335,36 @@
                   "job_type": "spark"
               }
         },
+        "semvec": {
+            "config": {
+                "inputPath":"%SELDON_MODELS%",
+                "outputPath":"%SELDON_MODELS%",
+                "startDay" : 1,
+                "days" : 1,
+                "activate" : true,
+                "itemType" : 1,
+                "itemLimit" : 10000,
+                "tagAttrs" : "tags",
+                "jdbc": "jdbc:mysql://mysql:3306/ahalife?user=root&password=mypass&characterEncoding=utf8"
+            },
+            "training": {
+                "job_info": {
+                    "cmd": "%SPARK_HOME%/bin/spark-submit",
+                    "cmd_args": [
+                        "--class",
+                        "io.seldon.spark.cluster.TopicModel",
+                        "--master",
+                        "spark://spark-master:7077",
+                        "%SELDON_SPARK_HOME%/seldon-spark-%SELDON_VERSION%-jar-with-dependencies.jar",
+                        "--client",
+                        "%CLIENT_NAME%",
+                        "--zookeeper",
+                        "%ZK_HOSTS%"
+                    ]
+                },
+                "job_type": "sv"
+            }
+        },
          "topic-lda": {
              "config": {
                  "inputPath":"%SELDON_MODELS%",

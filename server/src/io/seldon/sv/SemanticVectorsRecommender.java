@@ -69,17 +69,17 @@ public class SemanticVectorsRecommender implements ItemRecommendationAlgorithm {
     }
     
    protected ItemRecommendationResultSet recommendImpl(String client,Long user, Set<Integer> dimensions, RecommendationContext ctxt, int maxRecsCount,List<Long> recentItemInteractions,String svPrefix) {
-       RecommendationContext.OptionsHolder options = ctxt.getOptsHolder();
 
-       ConsumerBean c = new ConsumerBean(client);
-       Collection<Action> recentUserBuyActions = Util.getActionPeer(c).getRecentUserActions(user, 3, 10); // 3 as buy
-       Set<Long> recentUserActionSet = new HashSet<Long>();
-       for(Action a : recentUserBuyActions){
+        ConsumerBean c = new ConsumerBean(client);
+        Collection<Action> recentUserBuyActions = Util.getActionPeer(c).getRecentUserActions(user, 3, 10); // 3 as buy
+        Set<Long> recentUserActionSet = new HashSet<Long>();
+        for(Action a : recentUserBuyActions){
            recentUserActionSet.add(a.getItemId());
-       }
-       recentUserActionSet.addAll(recentItemInteractions);
-       recentItemInteractions = new ArrayList<>(recentUserActionSet);
+        }
+        recentUserActionSet.addAll(recentItemInteractions);
+        recentItemInteractions = new ArrayList<>(recentUserActionSet);
 
+        RecommendationContext.OptionsHolder options = ctxt.getOptsHolder();
         if (recentItemInteractions.size() == 0)
         {
             logger.debug("Can't recommend as no recent item interactions");

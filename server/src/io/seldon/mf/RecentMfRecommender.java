@@ -23,18 +23,16 @@
 
 package io.seldon.mf;
 
+import io.seldon.api.Util;
+import io.seldon.api.resource.ConsumerBean;
 import io.seldon.clustering.recommender.ItemRecommendationAlgorithm;
 import io.seldon.clustering.recommender.ItemRecommendationResultSet;
 import io.seldon.clustering.recommender.ItemRecommendationResultSet.ItemRecommendationResult;
 import io.seldon.clustering.recommender.RecommendationContext;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
+import io.seldon.general.Action;
 import org.apache.commons.math.linear.ArrayRealVector;
 import org.apache.commons.math.linear.RealVector;
 import org.apache.log4j.Logger;
@@ -61,6 +59,15 @@ public class RecentMfRecommender implements ItemRecommendationAlgorithm {
     @Override
     public ItemRecommendationResultSet recommend(String client, Long user, Set<Integer> dimensions,
             int maxRecsCount, RecommendationContext ctxt, List<Long> recentItemInteractions) {
+
+		ConsumerBean c = new ConsumerBean(client);
+		Collection<Action> recentUserBuyActions = Util.getActionPeer(c).getRecentUserActions(user, 3, 10); // 3 as buy
+		Set<Long> recentUserActionSet = new HashSet<Long>();
+		for(Action a : recentUserBuyActions){
+			recentUserActionSet.add(a.getItemId());
+		}
+		recentUserActionSet.addAll(recentItemInteractions);
+		recentItemInteractions = new ArrayList<>(recentUserActionSet);
 
 		RecommendationContext.OptionsHolder opts = ctxt.getOptsHolder();
 		int numRecentActionsToUse = opts.getIntegerOption(RECENT_ACTIONS_PROPERTY_NAME);
