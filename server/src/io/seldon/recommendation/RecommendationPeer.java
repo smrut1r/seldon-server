@@ -25,22 +25,21 @@ package io.seldon.recommendation;
 
 import io.seldon.api.APIException;
 import io.seldon.api.Constants;
+import io.seldon.api.Util;
 import io.seldon.api.caching.ActionHistoryProvider;
+import io.seldon.api.resource.ConsumerBean;
 import io.seldon.api.state.ClientAlgorithmStore;
 import io.seldon.api.state.options.DefaultOptions;
 import io.seldon.clustering.recommender.ItemRecommendationResultSet;
 import io.seldon.clustering.recommender.RecommendationContext;
 import io.seldon.clustering.recommender.jdo.JdoCountRecommenderUtils;
+import io.seldon.general.Action;
 import io.seldon.recommendation.combiner.AlgorithmResultsCombiner;
 import io.seldon.recommendation.filters.ExplicitItemsIncluder;
 import io.seldon.recommendation.filters.FilteredItems;
 import io.seldon.util.CollectionTools;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.Logger;
@@ -122,6 +121,14 @@ public class RecommendationPeer {
 		{
 			//TODO - fix limit
 			recentActions = actionProvider.getRecentActions(client,user, 100);
+			ConsumerBean c = new ConsumerBean(client);
+			Collection<Action> recentUserBuyActions = Util.getActionPeer(c).getRecentUserActions(user, 3, 10); // 3 as buy
+			Set<Long> recentUserActionSet = new HashSet<Long>();
+			for(Action a : recentUserBuyActions){
+				recentUserActionSet.add(a.getItemId());
+			}
+			recentUserActionSet.addAll(recentActions);
+			recentActions = new ArrayList<>(recentUserActionSet);
 			numRecentActions = recentActions.size();
 			if (debugging)
 				logger.debug("RecentActions for user with client "+client+" internal user id "+user+" num." + numRecentActions);
@@ -159,8 +166,8 @@ public class RecommendationPeer {
 			if (logger.isDebugEnabled())
 				logger.debug("Recommender "+algStr.name+" returned "+results.getResults().size()+" results ");
 		    resultSets.add(new RecResultContext(results, results.getRecommenderName()));
-			if(combiner.isEnoughResults(numRecommendationsAsked, resultSets))
-				break;
+			//if(combiner.isEnoughResults(numRecommendationsAsked, resultSets))
+			//	break;
 		}
         RecResultContext combinedResults = combiner.combine(numRecommendations, resultSets);
         if (logger.isDebugEnabled())

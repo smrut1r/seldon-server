@@ -25,11 +25,16 @@ package io.seldon.topics;
 
 import io.seldon.api.Util;
 import io.seldon.api.resource.ConsumerBean;
+import io.seldon.api.resource.ItemBean;
+import io.seldon.api.resource.ListBean;
+import io.seldon.api.resource.ResourceBean;
+import io.seldon.api.resource.service.ItemService;
 import io.seldon.clustering.recommender.ItemRecommendationAlgorithm;
 import io.seldon.clustering.recommender.ItemRecommendationResultSet;
 import io.seldon.clustering.recommender.ItemRecommendationResultSet.ItemRecommendationResult;
 import io.seldon.clustering.recommender.RecommendationContext;
 import io.seldon.general.Action;
+import io.seldon.general.Item;
 import io.seldon.items.RecentItemsWithTagsManager;
 import io.seldon.recommendation.ItemFilter;
 import io.seldon.recommendation.ItemIncluder;
@@ -53,14 +58,17 @@ public class RecentTopicModelRecommender implements ItemRecommendationAlgorithm 
 
 	TopicFeaturesManager featuresManager;
 	RecentItemsWithTagsManager tagsManager;
+	ItemService itemService;
 
 	@Autowired
-	public RecentTopicModelRecommender(TopicFeaturesManager featuresManager,RecentItemsWithTagsManager tagsManager,
+	public RecentTopicModelRecommender(TopicFeaturesManager featuresManager,RecentItemsWithTagsManager tagsManager, ItemService itemService,
 								 List<ItemIncluder> producers, List<ItemFilter> filters)
 	{
 		this.featuresManager = featuresManager;
 		this.tagsManager = tagsManager;
+		this.itemService = itemService;
 	}
+
 
 	@Override
 	public String name() {
@@ -70,14 +78,6 @@ public class RecentTopicModelRecommender implements ItemRecommendationAlgorithm 
 	@Override
 	public ItemRecommendationResultSet recommend(String client,
 			Long user, Set<Integer> dimensions,int maxRecsCount, RecommendationContext ctxt,  List<Long> recentItemInteractions) {
-		ConsumerBean c = new ConsumerBean(client);
-		Collection<Action> recentUserBuyActions = Util.getActionPeer(c).getRecentUserActions(user, 3, 10); // 3 as buy
-		Set<Long> recentUserActionSet = new HashSet<Long>();
-		for(Action a : recentUserBuyActions){
-			recentUserActionSet.add(a.getItemId());
-		}
-		recentUserActionSet.addAll(recentItemInteractions);
-		recentItemInteractions = new ArrayList<>(recentUserActionSet);
 
 		RecommendationContext.OptionsHolder options = ctxt.getOptsHolder();
 		Integer	tagAttrId = options.getIntegerOption(ATTR_ID_PROPERTY_NAME);
@@ -92,16 +92,23 @@ public class RecentTopicModelRecommender implements ItemRecommendationAlgorithm 
 			return new ItemRecommendationResultSet(Collections.<ItemRecommendationResult>emptyList(), name);
 		}
 		
-		if (ctxt == null || ctxt.getContextItems() == null || ctxt.getContextItems().size() == 0)
+		/*if (ctxt == null || ctxt.getContextItems() == null || ctxt.getContextItems().size() == 0)
 		{
 			logger.warn("Not items passed in to recommend from. For client "+client);
 			ctxt.getContextItems().addAll(recentItemInteractions);
-			return new ItemRecommendationResultSet(Collections.<ItemRecommendationResult>emptyList(), name);
+			//return new ItemRecommendationResultSet(Collections.<ItemRecommendationResult>emptyList(), name);
+		}*/
+		ConsumerBean c = new ConsumerBean(client);
+		//List<ResourceBean> items= itemService.getItems(c,100000,false,null,0).getList();
+		Collection<Item> items = Util.getItemPeer(c).getItems(100000,0,c);
+		Set<Long> itemSet = new HashSet<Long>();
+		for(Item a : items){
+			itemSet.add(Long.valueOf(a.getClientItemId()));
 		}
 		
 		if (logger.isDebugEnabled())
 			logger.debug("retrive tags for recent items with attr-id "+tagAttrId+" from table "+tagTable);
-		Map<Long,List<String>> itemTags = tagsManager.retrieveRecentItems(client, ctxt.getContextItems(),tagAttrId,tagTable);
+		Map<Long,List<String>> itemTags = tagsManager.retrieveRecentItems(client, itemSet,tagAttrId,tagTable);
 		if (itemTags == null || itemTags.size() == 0)
 		{
 			if (logger.isDebugEnabled())

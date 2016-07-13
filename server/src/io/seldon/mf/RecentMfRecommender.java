@@ -60,15 +60,6 @@ public class RecentMfRecommender implements ItemRecommendationAlgorithm {
     public ItemRecommendationResultSet recommend(String client, Long user, Set<Integer> dimensions,
             int maxRecsCount, RecommendationContext ctxt, List<Long> recentItemInteractions) {
 
-		ConsumerBean c = new ConsumerBean(client);
-		Collection<Action> recentUserBuyActions = Util.getActionPeer(c).getRecentUserActions(user, 3, 10); // 3 as buy
-		Set<Long> recentUserActionSet = new HashSet<Long>();
-		for(Action a : recentUserBuyActions){
-			recentUserActionSet.add(a.getItemId());
-		}
-		recentUserActionSet.addAll(recentItemInteractions);
-		recentItemInteractions = new ArrayList<>(recentUserActionSet);
-
 		RecommendationContext.OptionsHolder opts = ctxt.getOptsHolder();
 		int numRecentActionsToUse = opts.getIntegerOption(RECENT_ACTIONS_PROPERTY_NAME);
         MfFeaturesManager.ClientMfFeaturesStore clientStore = this.store.getClientStore(client, ctxt.getOptsHolder());

@@ -32,7 +32,12 @@
             "zk_activate_node": "/config/userclusters"
         },
         "itemSimilarityRecommender": {
-            "config": []
+            "config": [
+                {
+                    "name": "io.seldon.algorithm.general.numrecentactionstouse",
+                    "value": "5"
+                }
+            ]
         },
         "mfRecommender": {
             "config": [
@@ -77,7 +82,7 @@
             "config": [
                 {
                     "name": "io.seldon.algorithm.tags.attrid",
-                    "value": "3"
+                    "value": "10"
                 },
                 {
                     "name": "io.seldon.algorithm.tags.table",
@@ -94,7 +99,7 @@
             "config": [
                 {
                     "name": "io.seldon.algorithm.tags.attrid",
-                    "value": "3"
+                    "value": "10"
                 },
                 {
                     "name": "io.seldon.algorithm.tags.table",
@@ -344,7 +349,7 @@
                  "days" : 1,
                  "activate" : true,
                  "jdbc" : "jdbc:mysql://mysql:3306/ahalife?user=root&password=mypass&characterEncoding=utf8",
-                 "tagAttr" : "default_category_id",
+                 "tagAttr" : "tag_id",
                  "minActionsPerUser" : 2,
                  "numTopics" : 50,
                  "maxIterations": 20
