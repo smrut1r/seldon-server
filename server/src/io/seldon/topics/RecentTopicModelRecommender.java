@@ -98,6 +98,7 @@ public class RecentTopicModelRecommender implements ItemRecommendationAlgorithm 
 			ctxt.getContextItems().addAll(recentItemInteractions);
 			//return new ItemRecommendationResultSet(Collections.<ItemRecommendationResult>emptyList(), name);
 		}*/
+
 		ConsumerBean c = new ConsumerBean(client);
 		//List<ResourceBean> items= itemService.getItems(c,100000,false,null,0).getList();
 		Collection<Item> items = Util.getItemPeer(c).getItems(100000,0,c);
