@@ -200,10 +200,10 @@ def action_add(command_data, opts):
         sys.exit(1)
 
 
-    if recommender_name == EXTERNAL_RECOMMENDER:
-        if not (has_config(opts,CONFIG_MICROSERVICE_URL) and has_config(opts,CONFIG_MICROSERVICE_NAME)):
-            print "You must supply "+CONFIG_MICROSERVICE_URL+" and "+CONFIG_MICROSERVICE_NAME+" for "+EXTERNAL_RECOMMENDER
-            sys.exit(1)
+    #if recommender_name == EXTERNAL_RECOMMENDER:
+        #if not (has_config(opts,CONFIG_MICROSERVICE_URL) and has_config(opts,CONFIG_MICROSERVICE_NAME)):
+        #   print "You must supply "+CONFIG_MICROSERVICE_URL+" and "+CONFIG_MICROSERVICE_NAME+" for "+EXTERNAL_RECOMMENDER
+        #   sys.exit(1)
 
     zk_client = command_data["zkdetails"]["zk_client"]
     ensure_client_has_algs(zkroot, zk_client, client_name)

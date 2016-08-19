@@ -104,10 +104,10 @@ public class ExternalItemRecommendationAlgorithm implements ItemRecommendationAl
         long timeNow = System.currentTimeMillis();
         String recommenderName = ctxt.getOptsHolder().getStringOption(ALG_NAME_PROPERTY_NAME);
         String baseUrl = ctxt.getOptsHolder().getStringOption(URL_PROPERTY_NAME);
-        if (ctxt.getInclusionKeys().isEmpty()){
+        /*if (ctxt.getInclusionKeys().isEmpty()){
             logger.warn("Cannot get external recommendations are no includers were used. Returning 0 results");
             return new ItemRecommendationResultSet(recommenderName);
-        }
+        }*/
         URI uri = URI.create(baseUrl);
         try {
             URIBuilder builder = new URIBuilder().setScheme("http")
@@ -116,13 +116,16 @@ public class ExternalItemRecommendationAlgorithm implements ItemRecommendationAl
                                                     .setPath(uri.getPath())
                                                     .setParameter("client", client)
                                                     .setParameter("user_id", user.toString())
+                                                    .setParameter("user", user.toString())
                                                     .setParameter("recent_interactions",StringUtils.join(recentItemInteractions,","))
                                                     .setParameter("dimensions", StringUtils.join(dimensions, ","))
                                                     .setParameter("exclusion_items", StringUtils.join(ctxt.getExclusionItems(),","))
                                                     .setParameter("data_key", StringUtils.join(ctxt.getInclusionKeys(),","))
                                                     .setParameter("limit", String.valueOf(maxRecsCount));
-            if (ctxt.getCurrentItem() != null)
+            if (ctxt.getCurrentItem() != null) {
                 builder.setParameter("item_id", ctxt.getCurrentItem().toString());
+                builder.setParameter("item", ctxt.getCurrentItem().toString());
+            }
             uri = builder.build();
         } catch (URISyntaxException e) {
             logger.error("Couldn't create URI for external recommender with name " + recommenderName, e);

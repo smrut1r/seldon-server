@@ -64,6 +64,7 @@ public class JsOverrideClientStrategy implements ClientStrategy {
         oldAlgNamesToNew.put("WORD2VEC", "word2vecRecommender");
         oldAlgNamesToNew.put("TOPIC_MODEL", "topicModelRecommender");
         oldAlgNamesToNew.put("RECENT_TOPIC_MODEL", "recentTopicModelRecommender");
+        oldAlgNamesToNew.put("EXTERNAL", "externalItemRecommendationAlgorithm");
     }
     private final ClientStrategy baseStrategy;
     private final Collection<String> overrideAlgs;
