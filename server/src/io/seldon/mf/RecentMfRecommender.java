@@ -106,7 +106,9 @@ public class RecentMfRecommender implements ItemRecommendationAlgorithm {
             	}
             }
 
-        } else {
+        }
+
+		if(recs.isEmpty()) {
            for (Map.Entry<Long, float[]> productFeatures : clientStore.productFeatures.entrySet()) {
                 Long item = productFeatures.getKey().longValue();
             	if (!recentItemInteractions.contains(item))

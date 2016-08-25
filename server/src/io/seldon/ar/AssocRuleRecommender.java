@@ -21,7 +21,9 @@
 */
 package io.seldon.ar;
 
+import io.seldon.api.Util;
 import io.seldon.api.caching.ActionHistoryProvider;
+import io.seldon.api.resource.ConsumerBean;
 import io.seldon.ar.AssocRuleManager.AssocRuleRecommendation;
 import io.seldon.ar.AssocRuleManager.AssocRuleStore;
 import io.seldon.clustering.recommender.ItemRecommendationAlgorithm;
@@ -31,13 +33,7 @@ import io.seldon.clustering.recommender.RecommendationContext;
 import io.seldon.general.Action;
 import io.seldon.recommendation.RecommendationUtils;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 import org.apache.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -54,7 +50,8 @@ public class AssocRuleRecommender implements ItemRecommendationAlgorithm {
 	private static final String BASKET_MAX_SIZE_OPTION = "io.seldon.algorithm.assocrules.basket.maxsize";
 	private static final String ADD_BASKET_ACTION_TYPE_OPTION = "io.seldon.algorithm.assocrules.add.basket.action.type";
 	private static final String REMOVE_BASKET_ACTION_TYPE_OPTION = "io.seldon.algorithm.assocrules.remove.basket.action.type";
-	
+
+	final int[][] indices4 = {{0,1,2,3},{0,1,2},{0,1,3},{0,2,3},{1,2,3},{0,1},{0,2},{0,3},{1,2},{1,3},{2,3},{0},{1},{2},{3}};
 	final int[][] indices3 = {{0,1,2},{0,1},{0,2},{1,2},{0},{1},{2}};
 	final int[][] indices2 = {{0,1},{0},{1}};
 	final int[][] indices1 = {{0}};
@@ -95,6 +92,15 @@ public class AssocRuleRecommender implements ItemRecommendationAlgorithm {
 		 if (useActionTypes)
 		 {
 			 List<Action> actions = actionProvider.getRecentFullActions(client, user, maxBasketSize*2);
+			 ConsumerBean c = new ConsumerBean(client);
+			 Collection<Action> recentAddBasketActions = Util.getActionPeer(c).getRecentUserActions(user, 2, maxBasketSize*2); // 2 as addtocart
+			 Set<Action> recentUserActionSet = new HashSet<Action>();
+			 for(Action a : recentAddBasketActions){
+				 recentUserActionSet.add(a);
+			 }
+			 recentUserActionSet.addAll(actions);
+			 actions = new ArrayList<>(recentUserActionSet);
+
 			 Collections.reverse(actions);
 			 basket = new ArrayList<Long>();
 			 int addBasketType = optionsHolder.getIntegerOption(ADD_BASKET_ACTION_TYPE_OPTION);
@@ -129,6 +135,9 @@ public class AssocRuleRecommender implements ItemRecommendationAlgorithm {
 		 int[][] indices;
 		 switch(basket.size())
 		 {
+		 case 4:
+			 indices = indices4;
+			 break;
 		 case 3:
 			 indices = indices3;
 			 break;

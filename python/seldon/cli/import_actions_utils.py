@@ -8,6 +8,7 @@ import MySQLdb
 import unicodecsv
 import pprint
 
+insertActionTypes = [2, 3]
 # datetime.datetime.strptime(%(timestamp_utc)s, '%Y-%m-%dT%H:%M:%SZ').date() if len(timestamp_utc) else
 ACTION_INSERT = "INSERT INTO actions (user_id, item_id, type, times, date, value, client_user_id, client_item_id) VALUES (%(userid)s, %(itemid)s, %(type)s, 1, now(), %(value)s, %(client_userid)s, %(client_itemid)s)"
 
@@ -83,7 +84,7 @@ def import_actions(client_name, db_settings, data_file_fpath, out_file_fpath):
             s = json.dumps(action,sort_keys=True)
             outfile.write(s+"\n")
             count += 1
-            if(action["type"]==3):
+            if action["type"] in insertActionTypes:
                 inserts.append(action)
             if count % 50000 == 0:
                 print "Processed "+str(count)+" actions"

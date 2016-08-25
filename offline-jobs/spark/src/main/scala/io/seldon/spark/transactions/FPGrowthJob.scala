@@ -33,6 +33,22 @@ case class FPGrowthConfig(
 
 	class FPGrowthJob(private val sc : SparkContext,config : FPGrowthConfig) {
 
+    def activate(location : String)
+    {
+      import io.seldon.spark.zookeeper.ZkCuratorHandler
+      import org.apache.curator.utils.EnsurePath
+      val curator = new ZkCuratorHandler(config.zkHosts)
+      if(curator.getCurator.getZookeeperClient.blockUntilConnectedOrTimedOut())
+      {
+        val zkPath = "/all_clients/"+config.client+"/assocrules"
+        val ensurePath = new EnsurePath(zkPath)
+        ensurePath.ensure(curator.getCurator.getZookeeperClient)
+        curator.getCurator.setData().forPath(zkPath,location.getBytes())
+      }
+      else
+        println("Failed to get zookeeper! Can't activate model")
+    }
+
 	  def parseSessions(path : String) = {
 	    
 	    val rdd = sc.textFile(path).map{line =>
@@ -163,7 +179,9 @@ case class FPGrowthConfig(
     
       json.saveAsTextFile(outPath);
 
-
+      if (config.activate) {
+        activate(outPath)
+      }
 	  }
 	}
 

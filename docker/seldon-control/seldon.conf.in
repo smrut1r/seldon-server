@@ -4,7 +4,24 @@
             "config": []
         },
         "assocRuleRecommender": {
-            "config": [],
+            "config": [
+                {
+                    "name": "io.seldon.algorithm.assocrules.usetype",
+                    "value": "true"
+                },
+                {
+                    "name": "io.seldon.algorithm.assocrules.basket.maxsize",
+                    "value": "10"
+                },
+                {
+                    "name": "io.seldon.algorithm.assocrules.add.basket.action.type",
+                    "value": "2"
+                },
+                {
+                    "name": "io.seldon.algorithm.assocrules.remove.basket.action.type",
+                    "value": "2"
+                }
+            ],
             "zk_activate_node": "/config/assocrules"
         },
         "dynamicClusterCountsRecommender": {
@@ -85,11 +102,11 @@
             "config": [
                 {
                     "name": "io.seldon.algorithm.tags.attrid",
-                    "value": "10"
+                    "value": "11"
                 },
                 {
                     "name": "io.seldon.algorithm.tags.table",
-                    "value": "varchar"
+                    "value": "text"
                 },
                 {
                     "name": "io.seldon.algorithm.tags.minnumtagsfortopicweights",
@@ -102,11 +119,11 @@
             "config": [
                 {
                     "name": "io.seldon.algorithm.tags.attrid",
-                    "value": "10"
+                    "value": "11"
                 },
                 {
                     "name": "io.seldon.algorithm.tags.table",
-                    "value": "varchar"
+                    "value": "text"
                 },
                 {
                     "name": "io.seldon.algorithm.tags.minnumtagsfortopicweights",
@@ -164,9 +181,9 @@
                 "rank": 30,
                 "startDay": 1,
                 "actionWeightings": [
-                                        {"actionType": 1, "valuePerAction": 1.0, "maxSum": 10.0},
-                                        {"actionType": 2, "valuePerAction": 2.0, "maxSum": 20.0},
-                                        {"actionType": 3, "valuePerAction": 3.0, "maxSum": 30.0}
+                                        {"actionType": 1, "valuePerAction": 1.0, "maxSum": 5.0},
+                                        {"actionType": 2, "valuePerAction": 2.0, "maxSum": 10.0},
+                                        {"actionType": 3, "valuePerAction": 3.0, "maxSum": 15.0}
                                     ]
             },
             "training": {
@@ -205,9 +222,9 @@
                 "jdbc": "jdbc:mysql://mysql:3306/ahalife?user=root&password=mypass&characterEncoding=utf8",
                 "requiredDimensions": "",
                 "actionWeightings": [
-                                        {"actionType": 1, "valuePerAction": 1.0, "maxSum": 10.0},
-                                        {"actionType": 2, "valuePerAction": 2.0, "maxSum": 20.0},
-                                        {"actionType": 3, "valuePerAction": 3.0, "maxSum": 30.0}
+                                        {"actionType": 1, "valuePerAction": 1.0, "maxSum": 5.0},
+                                        {"actionType": 2, "valuePerAction": 2.0, "maxSum": 10.0},
+                                        {"actionType": 3, "valuePerAction": 3.0, "maxSum": 15.0}
                                     ]
             },
             "training": {
@@ -319,11 +336,11 @@
                 "inputPath":"%SELDON_MODELS%",
                 "outputPath":"%SELDON_MODELS%",
                 "activate":true,
-                "startDay" : 1,
+                "startDay" : 180,
                 "days" : 1,
                 "activate" : true,
-                "minWordCount" : 50,
-                "vectorSize" : 200
+                "minWordCount" : 5,
+                "vectorSize" : 500
             },
             "training": {
                   "job_info": {
@@ -448,10 +465,10 @@
                 "outputPath":"%SELDON_MODELS%",
                 "activate":true,
                 "startDay" : 1,
-                "days" : 1,
+                "days" : 180,
                 "maxIntraSessionGapSecs" : 3600,
                 "minActionsPerUser" : 0,
-                "addToBasketType" : 1,
+                "addToBasketType" : 2,
                 "removefromBasketType" : 2
             },
             "training": {
@@ -478,7 +495,7 @@
                  "outputPath":"%SELDON_MODELS%",
                  "activate":true,
                  "startDay" : 1,
-                 "days" : 1,
+                 "days" : 180,
                  "minSupport" : 0.01,
                  "minConfidence" : 0.2,
                  "minInterest" : 0.1,

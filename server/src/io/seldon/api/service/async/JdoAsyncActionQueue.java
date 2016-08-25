@@ -30,10 +30,13 @@ import io.seldon.general.Action;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import java.util.Arrays;
+import java.util.List;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.log4j.Logger;
+import scala.Array;
 
 /**
  * Provide an batched insert of Actions (including creating new users and items).
@@ -84,6 +87,7 @@ public class JdoAsyncActionQueue implements Runnable, AsyncActionQueue {
     int badActions = 0;
     
     boolean insertActions = true;
+	List insertActionTypes = Arrays.asList(2, 3);
     
     public JdoAsyncActionQueue(String client, int qTimeoutSecs, int batchSize, int maxQSize,int maxDBRetries,boolean runUserItemUpdates,boolean runUpdateIdsInActionTable,boolean insertActions) {
         this.client = client;
@@ -531,7 +535,9 @@ public class JdoAsyncActionQueue implements Runnable, AsyncActionQueue {
     }
 
     public void put(Action action) {
-        queue.add(action);
+		if(insertActionTypes.contains(action.getType())) {
+			queue.add(action);
+		}
     }
 
     public String getClient() {
