@@ -121,7 +121,7 @@ class ExamplePipeline(private val sc : SparkContext,config : ExConfig) {
       //val dfFinal = dfOut.join(dfOut2, dfOut("id") === dfOut2("id"))
       
       val outPath = config.outputPath + "/" + config.client + "/features/"+config.startDay
-      dfOut.toJSON.saveAsTextFile(outPath)
+      dfOut.toJSON.rdd.saveAsTextFile(outPath)
     }
     
     

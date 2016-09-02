@@ -13,7 +13,7 @@
   <name>Offline Spark jobs</name>
   <properties>
         <scala.version>2.10</scala.version>
-        <spark.version>1.6.2</spark.version>
+        <spark.version>2.0.0</spark.version>
         <spark.scope>compile</spark.scope> <!--provided-->
         <curator.version>2.7.1</curator.version>
         <spring.version>4.1.0.RELEASE</spring.version>
@@ -191,7 +191,7 @@
 
    <dependency>
 		<groupId>org.apache.spark</groupId>
-		<artifactId>spark-streaming-kafka_${scala.version}</artifactId>
+		<artifactId>spark-streaming-kafka-0-8_${scala.version}</artifactId>
 		<version>${spark.version}</version>
 	</dependency>
   

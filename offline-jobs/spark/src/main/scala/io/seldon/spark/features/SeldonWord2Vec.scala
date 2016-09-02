@@ -18,11 +18,11 @@
 package io.seldon.spark.features
 
 import java.lang.{Iterable => JavaIterable}
+
 import scala.collection.JavaConverters._
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
 import com.github.fommil.netlib.BLAS.{getInstance => blas}
-import org.apache.spark.Logging
 import org.apache.spark.SparkContext._
 import org.apache.spark.annotation.Experimental
 import org.apache.spark.api.java.JavaRDD
@@ -31,8 +31,11 @@ import org.apache.spark.rdd._
 import org.apache.spark.util.Utils
 import java.util.Random
 
+import org.apache.log4j.Logger
+
+
 /**
- *  Entry in vocabulary 
+  * Entry in vocabulary
  */
 private case class VocabWord(
   var word: String,
@@ -61,13 +64,14 @@ private case class VocabWord(
  * Distributed Representations of Words and Phrases and their Compositionality.
  */
 @Experimental
-class SeldonWord2Vec extends Serializable with Logging {
+class SeldonWord2Vec extends Serializable {
   val random = new Random()
   private var vectorSize = 100
   private var learningRate = 0.025
   private var numPartitions = 1
   private var numIterations = 1
   private var seed = random.nextLong()
+  private val logger: Logger = Logger.getLogger(classOf[SeldonWord2Vec].getName)
 
   /**
    * Sets vector size (default: 100).
@@ -152,7 +156,7 @@ class SeldonWord2Vec extends Serializable with Logging {
       trainWordsCount += vocab(a).cn
       a += 1
     }
-    logInfo("trainWordsCount = " + trainWordsCount)
+    logger.info("trainWordsCount = " + trainWordsCount)
   }
 
   private def createExpTable(): Array[Float] = {
@@ -245,7 +249,8 @@ class SeldonWord2Vec extends Serializable with Logging {
 
   /**
    * Computes the vector representation of each word in vocabulary.
-   * @param dataset an RDD of words
+    *
+    * @param dataset an RDD of words
    * @return a Word2VecModel
    */
   def fit[S <: Iterable[String]](dataset: RDD[S]): Word2VecModel = {
@@ -304,7 +309,7 @@ class SeldonWord2Vec extends Serializable with Logging {
               alpha =
                 learningRate * (1 - numPartitions * wordCount.toDouble / (trainWordsCount + 1))
               if (alpha < learningRate * 0.0001) alpha = learningRate * 0.0001
-              logInfo("wordCount = " + wordCount + ", alpha = " + alpha)
+              logger.info("wordCount = " + wordCount + ", alpha = " + alpha)
             }
             wc += sentence.size
             var pos = 0
@@ -396,7 +401,8 @@ class SeldonWord2Vec extends Serializable with Logging {
 
   /**
    * Computes the vector representation of each word in vocabulary (Java version).
-   * @param dataset a JavaRDD of words
+    *
+    * @param dataset a JavaRDD of words
    * @return a Word2VecModel
    */
   def fit[S <: JavaIterable[String]](dataset: JavaRDD[S]): Word2VecModel = {
@@ -423,7 +429,8 @@ class Word2VecModel (
   
   /**
    * Transforms a word to its vector representation
-   * @param word a word 
+    *
+    * @param word a word
    * @return vector representation of word
    */
   def transform(word: String): Vector = {
@@ -437,7 +444,8 @@ class Word2VecModel (
 
   /**
    * Find synonyms of a word
-   * @param word a word
+    *
+    * @param word a word
    * @param num number of synonyms to find  
    * @return array of (word, cosineSimilarity)
    */
@@ -448,7 +456,8 @@ class Word2VecModel (
 
   /**
    * Find synonyms of the vector representation of a word
-   * @param vector vector representation of a word
+    *
+    * @param vector vector representation of a word
    * @param num number of synonyms to find  
    * @return array of (word, cosineSimilarity)
    */

@@ -286,6 +286,7 @@ class Recommender extends Actor {
           val pct = (x/len)*100
           if(pct%2 ==0) println(s"#### ${pct}% :(${x} of ${len}) completed")
         }
+        println("Task completed!!!")
       }
     } catch {
       case e: TasteException => e.printStackTrace

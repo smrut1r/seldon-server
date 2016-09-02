@@ -22,16 +22,15 @@
 package org.apache.spark.graphx.lib
 
 import org.apache.log4j.Logger
-
 import org.apache.log4j.Level
 import org.apache.spark.SparkConf
 import org.apache.spark.SparkContext
 import org.apache.spark.SparkContext._
-import org.apache.spark.graphx.PartitionStrategy
-import org.apache.spark.graphx.GraphLoader
+import org.apache.spark.graphx.{EdgeTriplet, GraphLoader, PartitionStrategy, _}
+
 import scala.reflect.ClassTag
-import org.apache.spark.graphx._
 import org.apache.spark.graphx.Graph.graphToGraphOps
+
 import scala.Iterator
 
 
@@ -61,7 +60,7 @@ import scala.Iterator
       (vid, _, optSet) => optSet.getOrElse(null)
     }
     // Edge function computes intersection of smaller vertex with larger vertex
-    def edgeFunc(et: EdgeTriplet[VertexSet, ED]): Iterator[(VertexId, (Map[Long,Int],Int))] = {
+    def edgeFunc(et: EdgeContext[VertexSet, ED, (Map[Long,Int],Int)]) = {  //EdgeTriplet[, ED]): Iterator[(VertexId, (Map[Long,Int],Int))
       assert(et.srcAttr != null)
       assert(et.dstAttr != null)
       val (smallSet, largeSet) = if (et.srcAttr.size < et.dstAttr.size) {
@@ -77,14 +76,14 @@ import scala.Iterator
           counter += 1
         }
       }
-      if (counter >= minTriangles && et.srcId != et.dstId){
-      Iterator((et.srcId, (Map(et.dstId.toLong->counter),counter)),(et.dstId,(Map(et.srcId.toLong->counter),counter)))}
-      else{
-        Iterator.empty
+      if (counter >= minTriangles && et.srcId != et.dstId) {
+        et.sendToDst((Map(et.srcId.toLong -> counter), counter))
+      }else{
+        //Iterator.empty
       }
     }
     // compute the intersection along edges
-    val counters: VertexRDD[(Map[Long,Int],Int)] = setGraph.mapReduceTriplets(edgeFunc,(count1 : (Map[Long,Int],Int) ,count2 : (Map[Long,Int],Int)) => {
+    val counters: VertexRDD[(Map[Long,Int],Int)] = setGraph.aggregateMessages(edgeFunc,(count1 : (Map[Long,Int],Int) ,count2 : (Map[Long,Int],Int)) => {
       (count1._1 ++ count2._1,count1._2+count2._2)
     })
    

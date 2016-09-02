@@ -85,7 +85,7 @@ class Ctr(private val sc : SparkContext,config : CtrConfig) {
     rdd
   }
   
-  def sendStatsToInfluxDb(data : org.apache.spark.sql.SchemaRDD,iHost : String, iUser : String, iPass : String) = {
+  def sendStatsToInfluxDb(data : org.apache.spark.sql.DataFrame,iHost : String, iUser : String, iPass : String) = {
     import org.influxdb.InfluxDBFactory
     import java.util.concurrent.TimeUnit
     import org.influxdb.InfluxDBFactory

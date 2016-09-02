@@ -199,7 +199,7 @@ object SeldonEvaluator {
 
 
   def loadDataModel(filePath: String): DataModel[Long, Long] = {
-    val dataModel = new DataModel[Long, Long]
+    val dataModel = new DataModel[Long, Long]()
     val dataSource = Source.fromFile(filePath)
     val len = 10000
     var cnt = 0f
@@ -246,7 +246,6 @@ object SeldonEvaluator {
     dataModel
   }
 
-
   def loadSparkDataModel(filePath: String): DataModel[Long, Long] = {
     val schema = StructType(Seq(StructField("user", LongType, false), StructField("item", LongType, false), StructField("preference", DoubleType, false), StructField("timestamp", LongType, true)))
     val dataModel = new DataModel[Long, Long]
@@ -258,6 +257,7 @@ object SeldonEvaluator {
 
     val len = 1000 //testdf.count()
     var x = 0f
+    import spark.implicits._
     df.map(row => {
       val userId = row.getAs[Long]("user")
       val itemId = row.getAs[Long]("item")
