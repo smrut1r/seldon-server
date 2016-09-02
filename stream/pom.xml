@@ -12,7 +12,7 @@
   <artifactId>seldon-stream</artifactId>
   <name>Streaming Jobs</name>
   <properties>
-        <scala.version>2.10</scala.version>
+        <scala.version>2.10.6</scala.version>
     </properties>
 
 

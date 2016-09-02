@@ -1,0 +1,454 @@
+/*
+ * Copyright 2015 recommenders.net.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package io.seldon.evaluation
+
+import net.recommenders.rival.core.DataModel
+import net.recommenders.rival.core.DataModelUtils
+import net.recommenders.rival.core.Parser
+import net.recommenders.rival.core.SimpleParser
+import net.recommenders.rival.evaluation.metric.error.RMSE
+import net.recommenders.rival.evaluation.metric.ranking.NDCG
+import net.recommenders.rival.evaluation.metric.ranking.Precision
+import net.recommenders.rival.evaluation.strategy.EvaluationStrategy
+import net.recommenders.rival.recommend.frameworks.RecommenderIO
+import net.recommenders.rival.recommend.frameworks.exceptions.RecommenderException
+import net.recommenders.rival.recommend.frameworks.mahout.GenericRecommenderBuilder
+import net.recommenders.rival.split.parser.MovielensParser
+import net.recommenders.rival.split.splitter.RandomSplitter
+import org.apache.mahout.cf.taste.common.TasteException
+import org.apache.mahout.cf.taste.impl.common.LongPrimitiveIterator
+import org.apache.mahout.cf.taste.impl.model.file.FileDataModel
+import org.apache.mahout.cf.taste.recommender.RecommendedItem
+import org.apache.mahout.cf.taste.recommender.Recommender
+import java.io.File
+import java.io.FileNotFoundException
+import java.io.IOException
+import java.io.UnsupportedEncodingException
+import java.lang.reflect.InvocationTargetException
+import java.util.List
+import java.lang.Long
+import java.sql.{DriverManager, ResultSet}
+import java.util
+import java.util.concurrent.TimeUnit
+import javax.servlet.ServletContextEvent
+
+import akka.actor.{ActorRef, ActorSystem, Inbox, Props}
+import com.typesafe.config.ConfigFactory
+import io.seldon.api.state.ZkCuratorHandler
+import io.seldon.api.state.zk.ZkClientConfigHandler
+import io.seldon.db.jdo.JDOFactory
+import io.seldon.memcache.SecurityHashPeer
+import io.seldon.recommendation.{RecommendationPeer, RecommendationResult}
+import io.seldon.spark.SparkUtils
+import org.apache.mahout.cf.taste.impl.recommender.GenericRecommendedItem
+import org.apache.spark.rdd.JdbcRDD
+import org.apache.spark.sql.{SQLContext, SaveMode}
+import org.apache.spark.sql.hive.HiveContext
+import org.apache.spark.sql.types._
+import org.apache.spark.{SparkConf, SparkContext}
+import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.context.ApplicationListener
+import org.springframework.context.event.ContextRefreshedEvent
+import org.springframework.context.support.ClassPathXmlApplicationContext
+import org.springframework.test.context.ContextConfiguration
+import org.springframework.test.context.junit4.SpringJUnit4ClassRunner
+import org.springframework.web.context.WebApplicationContext
+import org.springframework.web.context.support.WebApplicationContextUtils
+
+import scala.collection.JavaConverters._
+import scala.concurrent.duration.Duration
+import scala.concurrent.{Await, Promise}
+import scala.io.Source
+import scala.util.Try
+//import scalikejdbc._
+//import scalikejdbc.config._
+
+case class EnvBkp(peer: RecommendationPeer, algos: util.List[String], client: String, path: String, filename: String)
+case class RecRequestBkp(env: EnvBkp, user: Long, count: Int)
+
+object SeldonEvaluatorBkp {
+  val PERCENTAGE: Float = 0.8f
+  val NEIGH_SIZE: Int = 50
+  val AT: Int = 10
+  val REL_TH: Double = 3.0
+  val SEED: Long = 2048L
+
+  val client = "ahalife";
+  val folder = "/seldon-data/seldon-models/ahalife"
+  val modelPath = folder+"/model/"
+  val recPath = folder+"/recommendations/"
+  val dataFile = "/seldon-data/seldon-models/"+ client +"/actions/"+SparkUtils.getS3UnixGlob(1,180)+"/*"
+  val preparedFile = folder+"/input.json"
+  val percentage = PERCENTAGE
+
+
+  val ctx = new ClassPathXmlApplicationContext("classpath:api-service-ctx.xml")
+  val peer = ctx.getBean("recommendationPeer").asInstanceOf[RecommendationPeer]
+
+  val appConfig = ConfigFactory.parseResourcesAnySyntax("env").withFallback(ConfigFactory.parseResourcesAnySyntax("application"))
+  val config = ConfigFactory.load(appConfig)
+  //val config = ConfigFactory.load("application.conf")
+
+  // DBs.setup/DBs.setupAll loads specified JDBC driver classes.
+  /*DBs.setupAll()
+  case class Item(id: Long, name: String, value: String);
+  val items = DB readOnly { implicit session =>
+    sql"select i.client_item_id, ia.name, imv.value from items i, item_attr ia, item_map_varchar imv where i.item_id = imv.item_id and imv.attr_id = ia.attr_id".map(rs => Item(rs).list.apply()
+  }
+  DBs.closeAll()*/
+
+  //import org.apache.spark.sql.SparkSession
+  /*val spark = SparkSession.builder()
+    .appName("Seldon Validation")
+    .master("local[2]")
+    .config("spark.some.config.option", "some-value")
+    .getOrCreate()*/
+
+  //Class.forName("com.mysql.jdbc.Driver").newInstance
+  val conf = new SparkConf().setAppName("Seldon Validation").setMaster("local[2]")
+    .set("spark.driver.memory", "12g")
+    .set("spark.executor.memory", "12g")
+    .set("spark.driver.maxResultSize", "4g")
+  val sc = new SparkContext(conf)
+  val spark = new SQLContext(sc)
+
+  /*val options = Map("driver" -> MYSQL_DRIVER,
+      "url" -> MYSQL_CONNECTION_URL,
+      "dbtable" -> SQL,
+      "lowerBound" -> "0",
+      "upperBound" -> "999999999",
+      "partitionColumn" -> "emp_no",
+      "numPartitions" -> "10"
+    );
+  val sqlDF = spark.load("jdbc", options);*/
+
+  /*val sqlDF = spark.read
+    .format("jdbc")
+    .option("url", "jdbc:mysql://10.0.0.29/ahalife")
+    .option("user", "root")
+    .option("password", "mypass")
+    .option("dbtable", "items")
+    .load()*/
+
+  /*val itemRdd = new JdbcRDD(
+    sc,
+    () => {
+      Class.forName(config.getString("db.default.driver"))
+      DriverManager.getConnection(config.getString("db.default.url"))
+    },
+    config.getString("db.items"),
+    0, 999999999, 1,
+    (row : ResultSet) => (row.getInt("item_id"), row.getString("name"), row.getString("value"))
+  )
+  itemRdd.toDF().registerTempTable("items")
+  val itemDF = spark.sql("select * from items")
+  itemDF.show()*/
+
+  def main(args: Array[String]) {
+
+    println("Starting")
+    Try(Await.ready(Promise().future, Duration.create(5, "seconds")))
+    println("Done")
+    contextInitialized()
+
+    println("Starting2")
+    Try(Await.ready(Promise().future, Duration.create(5, "seconds")))
+    println("Done2")
+
+    //spark.read.json(dataFile).registerTempTable("actions")
+    //val actionData = spark.sql("SELECT userid, itemid, type, timestamp_utc FROM actions")
+    //actionData.repartition(1).write.mode(SaveMode.Overwrite).json(preparedFile)
+    //prepareSplits(percentage, preparedFile, folder, modelPath)
+
+    //recommend(modelPath, recPath)
+    //prepareStrategy(modelPath, recPath, modelPath)
+    evaluate(modelPath, recPath)
+    println("completed!!")
+    sc.stop()
+  }
+
+  def contextInitialized() {
+    var jdoFactory: JDOFactory = null
+    try {
+      ctx.getStartupDate
+      jdoFactory = ctx.getBean("JDOFactory").asInstanceOf[JDOFactory]
+      val zkClientConfigHandler = ctx.getBean("zkClientConfigHandler").asInstanceOf[ZkClientConfigHandler]
+      SecurityHashPeer.initialise
+      val curatorHandler = ZkCuratorHandler.getPeer
+      zkClientConfigHandler.contextIntialised
+    }
+    catch {
+      case e: Exception => e.printStackTrace()
+    } finally {
+      if (jdoFactory != null) jdoFactory.cleanupPM
+    }
+  }
+
+  def prepareSplits(percentage: Float, inFile: String, folder: String, outPath: String) {
+    val perUser: Boolean = true
+    val perItem: Boolean = false
+    val seed: Long = SEED
+    val parser = new SeldonEventParser
+    val data = parser.parseData(new File(inFile))
+
+    val splits: Array[DataModel[Long, Long]] = new RandomSplitter(percentage, perUser, seed, perItem).split(data)
+    val dir: File = new File(outPath)
+    if (!dir.exists) {
+      if (!dir.mkdir) {
+        System.err.println("Directory " + dir + " could not be created")
+        return
+      }
+    }
+    var i: Int = 0
+    while (i < splits.length / 2) {
+      {
+        val training: DataModel[Long, Long] = splits(2 * i)
+        val test: DataModel[Long, Long] = splits(2 * i + 1)
+        val trainingFile: String = outPath + "train_" + i + ".csv"
+        val testFile: String = outPath + "test_" + i + ".csv"
+        //System.out.println("train: " + trainingFile)
+        //System.out.println("test: " + testFile)
+        val overwrite: Boolean = true
+        try {
+          DataModelUtils.saveDataModel(training, trainingFile, overwrite)
+          DataModelUtils.saveDataModel(test, testFile, overwrite)
+        }catch {
+          case e: Exception => e.printStackTrace
+        }
+      }
+
+      i += 1;
+    }
+  }
+
+  def getDataModel(x: String, inPath: String, outPath: String): FileDataModel = {
+    try {
+      x match {
+        case "train" => new FileDataModel (new File (inPath + "train_" + 0 + ".csv") )
+        case "test" => new FileDataModel (new File (inPath + "test_" + 0 + ".csv") )
+        case _ =>  null
+      }
+    } catch {
+      case e: IOException => {
+        e.printStackTrace
+        null
+      }
+    }
+  }
+
+  def recommend(inPath: String, outPath: String) {
+    val i: Int = 0
+    val trainModel = getDataModel("train", inPath, outPath)
+    val testModel = getDataModel("test", inPath, outPath)
+
+    val algos = new util.ArrayList[String]()
+    algos.add("RECENT_MATRIX_FACTOR")
+
+    /*val system = ActorSystem("RecommendationSystem")
+    val recommender = system.actorOf(Props[Recommender], "Recommender")
+    val inbox = Inbox.create(system)*/
+
+    new File(recPath + "recs_" + i + ".csv").delete()
+    val env = EnvBkp(peer, algos, client, recPath, "recs_" + i + ".csv")
+
+    try {
+      var users = testModel.getUserIDs
+      val len = 3000 //testModel.getUserIDs.asScala.length
+      //val testModel2 = getDataModel("test", inPath, outPath)
+
+      var x = 0f
+        /*users.asScala.toStream.par.map(u => {
+        val recRequest = RecRequest(env, u, trainModel.getNumItems())
+        recommend(recRequest)
+        x += 1f
+        val pct = (x/len)*100
+        if(pct%2 ==0) println(s"#### ${pct}% :(${x} of ${len}) completed")
+      })*/
+      while (users.hasNext) {
+        {
+          val u = users.nextLong
+          val recRequest = RecRequestBkp(env, u, trainModel.getNumItems())
+          //recommender ! recRequest
+          //inbox.send(recommender, recRequest)
+          //val items: List[RecommendedItem] = inbox.receive(Duration.create(1, TimeUnit.SECONDS)).asInstanceOf
+          recommend(recRequest)
+          x += 1f
+          val pct = (x/len)*100
+          if(pct%2 ==0) println(s"#### ${pct}% :(${x} of ${len}) completed")
+        }
+      }
+    } catch {
+      case e: TasteException => e.printStackTrace
+    }
+  }
+
+ /* def prepareStrategy(splitPath: String, recPath: String, outPath: String) {
+    val i: Int = 0
+    val trainingFile: File = new File(splitPath + "train_" + i + ".csv")
+    val testFile: File = new File(splitPath + "test_" + i + ".csv")
+    val recFile: File = new File(recPath + "recs_" + i + ".csv")
+    var trainingModel: DataModel[Long, Long] = null
+    var testModel: DataModel[Long, Long] = null
+    var recModel: DataModel[Long, Long] = null
+    try {
+      trainingModel = new SimpleParser().parseData(trainingFile)
+      testModel = new SimpleParser().parseData(testFile)
+      recModel = new SimpleParser().parseData(recFile)
+    }
+    catch {
+      case e: IOException => {
+        e.printStackTrace
+        return
+      }
+    }
+    val threshold: Double = REL_TH
+    val strategyClassName: String = "net.recommenders.rival.evaluation.strategy.UserTest"
+    var strategy: EvaluationStrategy[Long, Long] = null
+    try {
+      strategy = (Class.forName(strategyClassName)).getConstructor(classOf[DataModel[_, _]], classOf[DataModel[_, _]], classOf[Double]).newInstance(trainingModel, testModel, threshold).asInstanceOf[EvaluationStrategy[Long, Long]]
+    }
+    catch {
+      case e: InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException | ClassNotFoundException => {
+        e.printStackTrace
+      }
+    }
+    val modelToEval: DataModel[Long, Long] = new DataModel[Long, Long]
+    import scala.collection.JavaConversions._
+    for (user <- recModel.getUsers) {
+      import scala.collection.JavaConversions._
+      for (item <- strategy.getCandidateItemsToRank(user)) {
+        if (recModel.getUserItemPreferences.get(user).containsKey(item)) {
+          modelToEval.addPreference(user, item, recModel.getUserItemPreferences.get(user).get(item))
+        }
+      }
+    }
+    try {
+      DataModelUtils.saveDataModel(modelToEval, outPath + "strategymodel_" + i + ".csv", true)
+    }
+    catch {
+      case e: FileNotFoundException | UnsupportedEncodingException => {
+        e.printStackTrace
+      }
+    }
+  }*/
+
+  def evaluate(splitPath: String, recPath: String) {
+    var ndcgRes: Double = 0.0
+    var precisionRes: Double = 0.0
+    var rmseRes: Double = 0.0
+    val i: Int = 0
+
+    val schema = StructType(Seq(StructField("user", LongType, false), StructField("item", LongType, false), StructField("preference", DoubleType, false), StructField("timestamp", LongType, true)))
+    val test = spark.read.format("com.databricks.spark.csv").option("delimiter", "\t").option("header","false").schema(schema).load(splitPath + "test_" + i + ".csv")
+    //val peopleSchemaRDD = spark.applySchema(test.rdd, schema)
+    test.registerTempTable("test")
+    val testdf = spark.sql("SELECT user, item, preference, timestamp FROM test")
+    //testdf.cache()
+
+    var testModel = new DataModel[Long, Long]
+    testdf.collect().map(x => {
+      val userId = x.getAs[Long]("user")
+      val itemId = x.getAs[Long]("item")
+      val preference = x.getAs[Double]("preference")
+      val timestamp = x.getAs[Long]("timestamp")
+      testModel.addPreference(userId, itemId, preference)
+      if (timestamp != -1) {
+        testModel.addTimestamp(userId, itemId, timestamp)
+      }
+    })
+
+    val recs = spark.read.format("com.databricks.spark.csv").option("delimiter", "\t").option("header","false").schema(schema).load(recPath + "recs_" + i + ".csv")
+    recs.registerTempTable("recs")
+    val recsdf = spark.sql("SELECT user, item, preference, timestamp FROM recs")
+    //recsdf.cache()
+
+    var recModel = new DataModel[Long, Long]
+    recsdf.collect().map(x => {
+      val userId = x.getAs[Long]("user")
+      val itemId = x.getAs[Long]("item")
+      val preference = x.getAs[Double]("preference")
+      recModel.addPreference(userId, itemId, preference)
+    })
+
+
+    /*val testFile: File = new File(splitPath + "test_" + i + ".csv")
+    val recFile: File = new File(recPath + "recs_" + i + ".csv")
+    var testModel: DataModel[Long, Long] = null
+    var recModel: DataModel[Long, Long] = null
+    try {
+      testModel = new SimpleParser().parseData(testFile)
+      recModel = new SimpleParser().parseData(recFile)
+    }
+    catch {
+      case e: IOException => {
+        e.printStackTrace
+      }
+    }*/
+    val ndcg: NDCG[Long, Long] = new NDCG[Long, Long](recModel, testModel, Array[Int](AT))
+    ndcg.compute
+    ndcgRes += ndcg.getValueAt(AT)
+    val rmse: RMSE[Long, Long] = new RMSE[Long, Long](recModel, testModel)
+    rmse.compute
+    rmseRes += rmse.getValue
+    val precision: Precision[Long, Long] = new Precision[Long, Long](recModel, testModel, REL_TH, Array[Int](AT))
+    precision.compute
+    precisionRes += precision.getValueAt(AT)
+    System.out.println("NDCG@" + AT + ": " + ndcgRes)
+    System.out.println("RMSE: " + rmseRes)
+    System.out.println("P@" + AT + ": " + precisionRes)
+  }
+
+
+  def recommend(x: Any): Any = x match {
+    case RecRequestBkp(EnvBkp(peer, algos, client, path, fileName), user, count) => {
+      try {
+        val recResults = peer.getRecommendations(user, client, null, 0, null, count, "1L", 0L, "", "", algos, null)
+        val items = recResults.getRecs().asScala.map(x => new GenericRecommendedItem(x.getContent, x.getPrediction.toFloat)).asJava
+        //sender ! items
+        val file = new File(path + fileName)
+        RecommenderIO.writeData(user, items, path, fileName, file.length() != 0, null)
+      }catch {
+        case e:Exception => e.printStackTrace()
+      }
+    }
+    case _       => println("huh???")
+  }
+
+}
+
+//@RunWith(classOf[SpringJUnit4ClassRunner])
+//@ContextConfiguration(locations = Array("classpath:/WEB-INF/spring/appServlet/api-service-ctx.xml"))
+final class SeldonEvaluatorBkp private extends ApplicationListener[ContextRefreshedEvent] {
+  override def onApplicationEvent(e: ContextRefreshedEvent): Unit = {
+    val ctx = e.getApplicationContext();
+    println("Context initialized...........")
+  }
+}
+
+/*
+import akka.actor._
+class Recommender extends Actor {
+  def receive = {
+    case RecRequest(Env(peer, algos, client, path, fileName), user, count) => {
+      val recResults = peer.getRecommendations(user, client, null, 0, null, count, "1L", 0L, "", "", algos, null)
+      val items = recResults.getRecs().asScala.map(x => new GenericRecommendedItem(x.getContent, x.getPrediction.toFloat)).asJava
+      //sender ! items
+      val file = new File(path+fileName)
+      RecommenderIO.writeData(user, items, path, fileName, file.length() != 0, null)
+    }
+    case _       => println("huh???")
+  }
+}*/

@@ -1,16 +1,16 @@
-FROM maven:3.3.3-jdk-8
+FROM maven:3.3.3-jdk-7
 
 ENV SELDON_HOME /home/seldon
 RUN mkdir -p  "${SELDON_HOME}"
 WORKDIR ${SELDON_HOME}
 
-# create ${SELDON_HOME}/seldon-server-?.war
+# create ${SELDON_HOME}/seldon-server-?.jar
 COPY seldon-server.tar.gz ${SELDON_HOME}/
 RUN cd ${SELDON_HOME} && \
     tar xfz seldon-server.tar.gz && \
     cd seldon-server/server && \
     mvn clean package && \
-    mv -v ${SELDON_HOME}/seldon-server/server/target/*.war ${SELDON_HOME}/ && \
+    mv -v ${SELDON_HOME}/seldon-server/server/target/*.jar ${SELDON_HOME}/ && \
     rm -rf ${SELDON_HOME}/seldon-server && \
     rm -f ${SELDON_HOME}/seldon-server.tar.gz
 
@@ -58,8 +58,8 @@ RUN apt-get update && \
     apt-get install -y less telnet emacs
 
 RUN (mkdir -p $SELDON_HOME/ROOT && \
-    mv -v $SELDON_HOME/*.war $SELDON_HOME/ROOT && \
-    cd $SELDON_HOME/ROOT && unzip *.war && rm *.war && \
+    mv -v $SELDON_HOME/*.jar $SELDON_HOME/ROOT && \
+    cd $SELDON_HOME/ROOT && unzip *.jar && rm *.jar && \
     rm -rf $CATALINA_HOME/webapps/ROOT && ln -s $SELDON_HOME/ROOT $CATALINA_HOME/webapps/ROOT && \
     mkdir -p $SELDON_HOME/logs/base && \
     mkdir -p $SELDON_HOME/logs/actions && \

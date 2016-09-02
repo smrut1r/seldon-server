@@ -44,7 +44,7 @@ public class DefaultOptions {
 
     @PostConstruct
     public void init() throws IOException {
-        InputStream propStream = getClass().getClassLoader().getResourceAsStream("/alg_default.properties");
+        InputStream propStream = getClass().getClassLoader().getResourceAsStream("alg_default.properties");
         props.load(propStream);
     }
 

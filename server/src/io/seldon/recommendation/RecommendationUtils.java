@@ -28,15 +28,7 @@ import io.seldon.memcache.MemCacheKeys;
 import io.seldon.memcache.MemCachePeer;
 import io.seldon.util.CollectionTools;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.TreeMap;
+import java.util.*;
 
 import org.apache.log4j.Logger;
 
@@ -84,8 +76,48 @@ public class RecommendationUtils {
 		MemCachePeer.put(rrkey, lastRecs,RECENT_RECS_EXPIRE_SECS);
 		return recsFinal;
 	}
-	
 
+	public static Map<Long, Double> getDiverseRecommendations(int numRecommendationsAsked,Map<Long, Double> recs,String client,String clientUserId,Set<Integer> dimensions)
+	{
+		Map<Long, Double> recsFinal = new LinkedHashMap<>();
+		List<Map.Entry<Long, Double>> entryListRecs = new ArrayList<>(recs.entrySet());
+		List<Map.Entry<Long, Double>> entryList = entryListRecs.subList(0, Math.min(numRecommendationsAsked,recs.size()));
+
+		for(Map.Entry<Long, Double> e : entryList){
+			recsFinal.put(e.getKey(),e.getValue());
+		}
+		String rrkey = MemCacheKeys.getRecentRecsForUser(client, clientUserId, dimensions);
+		Set<Integer> lastRecs = (Set<Integer>) MemCachePeer.get(rrkey);
+		int hashCode = recsFinal.hashCode();
+		if (lastRecs != null) // only diversify recs if we have already shown recs previously recently
+		{
+			if (lastRecs.contains(hashCode))
+			{
+				if (logger.isDebugEnabled())
+					logger.debug("Trying to diversity recs for user "+clientUserId+" client"+client+" #recs "+recs.size());
+				Map<Long, Double>  shuffled = new LinkedHashMap<>();
+				Collections.shuffle(entryListRecs); //shuffle
+				List<Map.Entry<Long, Double>> entryListShuffledSized = entryListRecs.subList(0, Math.min(numRecommendationsAsked,recs.size())); //limit to size of recs asked for
+				recsFinal = new LinkedHashMap<>();
+				// add back in original order
+				for(Map.Entry<Long, Double> r : recs.entrySet())
+					if (entryListShuffledSized.contains(r))
+						recsFinal.put(r.getKey(), r.getValue());
+				hashCode = recsFinal.hashCode();
+			}
+			else if (logger.isDebugEnabled())
+				logger.debug("Will not diversity recs for user "+clientUserId+" as hashcode "+hashCode+" not in "+ CollectionTools.join(lastRecs, ","));
+		}
+		else if (logger.isDebugEnabled())
+		{
+			logger.debug("Will not diversity recs for user "+clientUserId+" dimension as lasRecs is null");
+		}
+		if (lastRecs == null)
+			lastRecs = new HashSet<>();
+		lastRecs.add(hashCode);
+		MemCachePeer.put(rrkey, lastRecs,RECENT_RECS_EXPIRE_SECS);
+		return recsFinal;
+	}
 	
 	/**
 	 * Create a new transient recommendations counter for the user by incrementing the current one.
@@ -96,7 +128,7 @@ public class RecommendationUtils {
 	 * @param strat
      *@param recTag @return
 	 */
-	public static String cacheRecommendationsAndCreateNewUUID(String client, String userId, Set<Integer> dimensions,
+	/*public static String cacheRecommendationsAndCreateNewUUID(String client, String userId, Set<Integer> dimensions,
                                                               String currentUUID, List<Long> recs,
                                                               String algKey, Long currentItemId, int numRecentActions, ClientStrategy strat, String recTag)
 	{
@@ -108,6 +140,34 @@ public class RecommendationUtils {
 		{
 			userRecCounter++;
 			String recsList = CollectionTools.join(recs, ":");
+			String abTestingKey = strat.getName(userId, recTag);
+			// TODO ab testing and recTag
+//			if (algorithm != null)
+//				abTestingKey = algorithm.getAbTestingKey();
+			CtrLogger.log(false,client, algKey, -1, userId,""+userRecCounter,currentItemId,numRecentActions,recsList,abTestingKey,recTag);
+			MemCachePeer.put(MemCacheKeys.getRecommendationListUUID(client,userId,userRecCounter, recTag),new LastRecommendationBean(algKey, recs),MEMCACHE_EXCLUSIONS_EXPIRE_SECS);
+			MemCachePeer.put(counterKey, userRecCounter,MEMCACHE_EXCLUSIONS_EXPIRE_SECS);
+		}
+		catch(NumberFormatException e)
+		{
+			logger.error("Can decode user UUID as integer: "+currentUUID);
+		}
+		return ""+userRecCounter;
+	}*/
+
+
+	public static String cacheRecommendationsAndCreateNewUUID(String client, String userId, Set<Integer> dimensions,
+															  String currentUUID, Map<Long, Double> recs,
+															  String algKey, Long currentItemId, int numRecentActions, ClientStrategy strat, String recTag)
+	{
+		String counterKey = MemCacheKeys.getRecommendationListUserCounter(client, dimensions, userId);
+		Integer userRecCounter = (Integer) MemCachePeer.get(counterKey);
+		if (userRecCounter == null)
+			userRecCounter = 0;
+		try
+		{
+			userRecCounter++;
+			String recsList = CollectionTools.join(recs.entrySet(), ":");
 			String abTestingKey = strat.getName(userId, recTag);
 			// TODO ab testing and recTag
 //			if (algorithm != null)

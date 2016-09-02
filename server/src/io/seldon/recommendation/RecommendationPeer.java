@@ -28,6 +28,7 @@ import io.seldon.api.Constants;
 import io.seldon.api.Util;
 import io.seldon.api.caching.ActionHistoryProvider;
 import io.seldon.api.resource.ConsumerBean;
+import io.seldon.api.resource.service.UserService;
 import io.seldon.api.state.ClientAlgorithmStore;
 import io.seldon.api.state.options.DefaultOptions;
 import io.seldon.clustering.recommender.ItemRecommendationResultSet;
@@ -74,6 +75,9 @@ public class RecommendationPeer {
 	ActionHistoryProvider actionProvider;
 
 	@Autowired
+	private UserService userService;
+
+	@Autowired
 	ExplicitItemsIncluder explicitItemsIncluder;
 	
     private boolean debugging = false;
@@ -89,6 +93,9 @@ public class RecommendationPeer {
                                                    Set<Integer> dimensions, int numRecommendationsAsked,
                                                    String lastRecListUUID,
                                                    Long currentItemId, String referrer, String recTag, List<String> algorithmOverride,Set<Long> scoreItems) {
+		if(StringUtils.isEmpty(clientUserId)){
+			clientUserId = userService.getClientUserId(client, user);
+		}
         ClientStrategy strategy;
         if (algorithmOverride != null && !algorithmOverride.isEmpty()) {
             logger.debug("Overriding algorithms from JS");
@@ -191,7 +198,7 @@ public class RecommendationPeer {
 //				default:
 //					break;
 //			}
-			List<Long> recommendationsFinal = CollectionTools.sortMapAndLimitToList(recommenderScores, numRecommendations, true);
+			Map<Long,Double> recommendationsFinal = CollectionTools.sortMapAndLimit(recommenderScores, numRecommendations, true);
 			if (logger.isDebugEnabled())
 				logger.debug("recommendationsFinal size was " +recommendationsFinal.size());
             return createFinalRecResult(numRecommendationsAsked, client, clientUserId, dimensions,
@@ -202,18 +209,18 @@ public class RecommendationPeer {
 		{
 			logger.warn("Returning no recommendations for user with client id "+clientUserId);
 			return createFinalRecResult(numRecommendationsAsked,client, clientUserId,
-					dimensions, lastRecListUUID, new ArrayList<Long>(),"",currentItemId,
+					dimensions, lastRecListUUID, new LinkedHashMap<Long, Double>(),"",currentItemId,
 					numRecentActions, diversityLevel,strategy, recTag);
 		}
 	}
 
 
     private RecommendationResult createFinalRecResult(int numRecommendationsAsked, String client, String clientUserId,
-													  Set<Integer> dimensions,String currentRecUUID,List<Long> recs,String algKey,
+													  Set<Integer> dimensions,String currentRecUUID,Map<Long, Double> recs,String algKey,
 													  Long currentItemId,int numRecentActions, Double diversityLevel,
                                                       ClientStrategy strat, String recTag)
     {
-    	List<Long> recsFinal;
+		Map<Long, Double> recsFinal;
     	if (diversityLevel > 1.0)
     		recsFinal = RecommendationUtils.getDiverseRecommendations(numRecommendationsAsked, recs,client,clientUserId,dimensions);
     	else
@@ -223,8 +230,8 @@ public class RecommendationPeer {
     	String uuid=RecommendationUtils.cacheRecommendationsAndCreateNewUUID(client, clientUserId, dimensions,
                 currentRecUUID, recsFinal, algKey,currentItemId,numRecentActions, strat, recTag);
     	List<Recommendation> recBeans = new ArrayList<>();
-    	for(Long itemId : recsFinal)
-    		recBeans.add(new Recommendation(itemId, 0, 0.0));
+    	for(Map.Entry<Long, Double> entry: recsFinal.entrySet())
+    		recBeans.add(new Recommendation(entry.getKey(), 0, entry.getValue()));
     	return new RecommendationResult(recBeans, uuid, strat.getName(clientUserId,recTag));
     }
 

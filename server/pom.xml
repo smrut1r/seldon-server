@@ -112,6 +112,7 @@
                 <artifactId>maven-war-plugin</artifactId>
                 <version>2.2</version>
                 <configuration>
+                    <attachClasses>true</attachClasses>
                     <!-- Custom WEB-INF location (move to conventional layout in phase 2) -->
                     <webXml>${project.basedir}/WebContent/WEB-INF/web.xml</webXml>
                     <webResources>
@@ -159,6 +160,19 @@
                 </executions>
             </plugin>
 
+           <!-- <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>make-a-jar</id>
+                        <phase>compile</phase>
+                        <goals>
+                            <goal>jar</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>-->
         </plugins>
     </build>
 
@@ -312,7 +326,7 @@
         <dependency>
             <groupId>org.scala-lang</groupId>
             <artifactId>scala-library</artifactId>
-            <version>2.10.2</version>
+            <version>2.10.6</version>
         </dependency>
         <dependency>
             <groupId>net.sf.jopt-simple</groupId>

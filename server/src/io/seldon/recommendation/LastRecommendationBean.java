@@ -25,12 +25,13 @@ package io.seldon.recommendation;
 
 import java.io.Serializable;
 import java.util.List;
+import java.util.Map;
 
 public class LastRecommendationBean implements Serializable {
 
 	String algorithm;
-	List<Long> recs;
-	public LastRecommendationBean(String algorithm, List<Long> recs) {
+	Map<Long, Double> recs;
+	public LastRecommendationBean(String algorithm, Map<Long, Double> recs) {
 		super();
 		this.algorithm = algorithm;
 		this.recs = recs;
@@ -41,10 +42,10 @@ public class LastRecommendationBean implements Serializable {
 	public void setAlgorithm(String algorithm) {
 		this.algorithm = algorithm;
 	}
-	public List<Long> getRecs() {
+	public Map<Long, Double> getRecs() {
 		return recs;
 	}
-	public void setRecs(List<Long> recs) {
+	public void setRecs(Map<Long, Double> recs) {
 		this.recs = recs;
 	}
 	

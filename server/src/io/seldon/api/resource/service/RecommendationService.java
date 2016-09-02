@@ -224,7 +224,7 @@ public class RecommendationService {
         if(lastRecs!=null) {
             for (int i = 0; i < lastRecs.getRecs().size(); i++) {
                 if (lastRecs.getRecs().get(i).equals(currentItem))
-                    return lastRecs.getRecs().subList(0, i);
+                    return  new ArrayList<>(lastRecs.getRecs().keySet()).subList(0, i);
             }
         }
         // not in there

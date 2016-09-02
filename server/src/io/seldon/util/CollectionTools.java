@@ -23,13 +23,7 @@
 
 package io.seldon.util;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
 
 
@@ -88,7 +82,7 @@ public class CollectionTools {
 		if (keepHighest)
 			Collections.reverse(sorted);
 		int count = 0;
-		Map<K,V> res = new HashMap<>();
+		Map<K,V> res = new LinkedHashMap<>();
 		for(Map.Entry<K, V> e : sorted)
 		{
 			if (count>=k)
