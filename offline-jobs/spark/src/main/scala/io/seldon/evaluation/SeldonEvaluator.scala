@@ -249,7 +249,7 @@ object SeldonEvaluator {
 
   def loadSparkDataModel(filePath: String): DataModel[Long, Long] = {
     val schema = StructType(Seq(StructField("user", LongType, false), StructField("item", LongType, false), StructField("preference", DoubleType, false), StructField("timestamp", LongType, true)))
-    var dataModel = new DataModel[Long, Long]
+    val dataModel = new DataModel[Long, Long]
     val test = spark.read.format("com.databricks.spark.csv").option("delimiter", "\t").option("header","false").schema(schema).load(filePath)
     //val peopleSchemaRDD = spark.applySchema(test.rdd, schema)
     test.registerTempTable("test")
