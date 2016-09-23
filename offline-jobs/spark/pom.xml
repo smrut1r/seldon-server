@@ -17,6 +17,7 @@
         <spark.scope>compile</spark.scope> <!--provided-->
         <curator.version>2.7.1</curator.version>
         <spring.version>4.1.0.RELEASE</spring.version>
+        <mahout.version>0.12.2</mahout.version>
     </properties>
 
    <pluginRepositories>
@@ -163,14 +164,14 @@
       <!--<dependency>
           <groupId>ai.h2o</groupId>
           <artifactId>sparkling-water-ml_2.10</artifactId>
-          <version>1.6.6</version>
+          <version>1.6.7</version>
       </dependency>-->
 
-      <dependency>
+      <!--<dependency>
           <groupId>com.databricks</groupId>
           <artifactId>spark-csv_2.10</artifactId>
           <version>1.4.0</version>
-      </dependency>
+      </dependency>-->
 
 
 
@@ -223,11 +224,11 @@
   		<version>3.2.10</version>
 	</dependency>
  -->	
-  	<dependency>
+  	<!--<dependency>
   		<groupId>org.json4s</groupId>
   		<artifactId>json4s-jackson_${scala.version}</artifactId>
   		<version>3.2.10</version>
-	</dependency>
+	</dependency>-->
 	
 	<dependency>
 		<groupId>com.github.scopt</groupId>
@@ -347,6 +348,25 @@
           <version>${spring.version}</version>
       </dependency>
 
+
+      <!-- https://mvnrepository.com/artifact/org.apache.mahout/mahout -->
+      <dependency>
+          <groupId>org.apache.mahout</groupId>
+          <artifactId>mahout-math-scala_2.10</artifactId>
+          <version>${mahout.version}</version>
+      </dependency>
+
+      <dependency>
+          <groupId>org.apache.mahout</groupId>
+          <artifactId>mahout-spark_2.10</artifactId>
+          <version>${mahout.version}</version>
+      </dependency>
+
+      <dependency>
+          <groupId>org.apache.mahout</groupId>
+          <artifactId>mahout-math</artifactId>
+          <version>${mahout.version}</version>
+      </dependency>
 
   </dependencies>
   

@@ -53,6 +53,7 @@ import io.seldon.db.jdo.JDOFactory
 import io.seldon.memcache.SecurityHashPeer
 import io.seldon.recommendation.{RecommendationPeer, RecommendationResult}
 import io.seldon.spark.SparkUtils
+import org.apache.commons.collections.IteratorUtils
 import org.apache.mahout.cf.taste.impl.recommender.GenericRecommendedItem
 import org.apache.spark.rdd.JdbcRDD
 import org.apache.spark.sql.{SQLContext, SaveMode}
@@ -76,8 +77,8 @@ import scala.util.Try
 //import scalikejdbc._
 //import scalikejdbc.config._
 
-case class Env(peer: RecommendationPeer, algos: util.List[String], client: String, path: String, filename: String)
-case class RecRequest(env: Env, user: Long, count: Int)
+case class Env(peer: RecommendationPeer, client: String, path: String)
+case class RecRequest(env: Env, algos: util.List[String], user: Long, item: util.Set[Long], count: Int)
 
 object SeldonRecommender {
 
@@ -103,7 +104,7 @@ object SeldonRecommender {
     .getOrCreate()*/
 
   //Class.forName("com.mysql.jdbc.Driver").newInstance
-  val conf = new SparkConf().setAppName("Seldon Validation").setMaster("local[2]")
+  val conf = new SparkConf().setAppName("Seldon Validation").setMaster("local[4]")
     .set("spark.driver.memory", "12g")
     .set("spark.executor.memory", "12g")
     .set("spark.driver.maxResultSize", "4g")
@@ -144,8 +145,6 @@ object SeldonRecommender {
 
   def main(args: Array[String]) {
 
-
-
     val system = ActorSystem("SeldonSystem")
     val zooRefresher = system.actorOf(Props[ZooRefresher], "ZooRefresher")
     //val inbox = Inbox.create(system)
@@ -155,9 +154,6 @@ object SeldonRecommender {
     println("completed!!")
     sc.stop()
   }
-
-
-
 
 }
 
@@ -217,6 +213,7 @@ class Recommender extends Actor {
   val folder = "/seldon-data/seldon-models/ahalife"
   val modelPath = folder+"/model/"
   val recPath = folder+"/recommendations/"
+  val SCALE = 30
 
   def receive = {
     /*case RecRequest(Env(peer, algos, client, path, fileName), user, count) => {
@@ -254,15 +251,21 @@ class Recommender extends Actor {
 
     val algos = new util.ArrayList[String]()
     algos.add("RECENT_MATRIX_FACTOR")
+    algos.add("RECENT_SIMILAR_ITEMS")
+    algos.add("RECENT_TOPIC_MODEL")
+    algos.add("WORD2VEC")
 
     val trainModel = getDataModel("train", modelPath, recPath)
     val testModel = getDataModel("test", modelPath, recPath)
 
-    new File(recPath + "recs_" + i + ".csv").delete()
-    val env = Env(peer, algos, client, recPath, "recs_" + i + ".csv")
+    algos.asScala.foreach(algo =>{
+      new File(recPath + algo + ".csv").delete()
+    })
+    val env = Env(peer, client, recPath)
 
     try {
-      var users = testModel.getUserIDs
+      var users = testModel.getUserIDs.asScala.toList
+      var items = testModel.getItemIDs.asScala.toList.toSet.asJava
       val len = 3000 //testModel.getUserIDs.asScala.length
       //val testModel2 = getDataModel("test", inPath, outPath)
 
@@ -274,31 +277,36 @@ class Recommender extends Actor {
         val pct = (x/len)*100
         if(pct%2 ==0) println(s"#### ${pct}% :(${x} of ${len}) completed")
       })*/
-      while (users.hasNext) {
-        {
-          val u = users.nextLong
-          val recRequest = RecRequest(env, u, 1000)//trainModel.getNumItems()
+      algos.asScala.foreach(algo => {
+        val algoz = util.Arrays.asList(algo)
+        for (u <- users) {
+          //while (items.hasNext){
+          //val u = users.nextLong
+          //val i = items.toSet
+          val recRequest = RecRequest(env, algoz, u, items, 1000) //trainModel.getNumItems()
           //recommender ! recRequest
           //inbox.send(recommender, recRequest)
           //val items: List[RecommendedItem] = inbox.receive(Duration.create(1, TimeUnit.SECONDS)).asInstanceOf
           recommend(recRequest)
           x += 1f
-          val pct = (x/len)*100
-          if(pct%2 ==0) println(s"#### ${pct}% :(${x} of ${len}) completed")
+          val pct = (x / len) * 100
+          if (pct % 2 == 0) println(s"#### ${pct}% :(${x} of ${len}) completed")
+          //}
         }
-        println("Task completed!!!")
-      }
+      })
+      println("Task completed!!!")
     } catch {
       case e: TasteException => e.printStackTrace
     }
   }
 
   def recommend(x: Any): Any = x match {
-    case RecRequest(Env(peer, algos, client, path, fileName), user, count) => {
+    case RecRequest(Env(peer, client, path), algos, user, scoreItems, count) => {
       try {
-        val recResults = peer.getRecommendations(user, client, null, 0, null, count, "1L", 0L, "", "", algos, null)
-        val items = recResults.getRecs().asScala.map(x => new GenericRecommendedItem(x.getContent, x.getPrediction.toFloat)).asJava
+        val recResults = peer.getRecommendations(user, client, null, 0, null, count, "1L", 0L, "", "", algos, scoreItems)
+        val items = recResults.getRecs().asScala.map(x => new GenericRecommendedItem(x.getContent, (SCALE * x.getPrediction).toFloat)).asJava
         //sender ! items
+        val fileName = algos.toArray().mkString("+") + ".csv"
         val file = new File(path + fileName)
         RecommenderIO.writeData(user, items, path, fileName, file.length() != 0, null)
       }catch {

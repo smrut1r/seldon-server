@@ -19,9 +19,8 @@ import net.recommenders.rival.core.DataModel
 import net.recommenders.rival.core.DataModelUtils
 import net.recommenders.rival.core.Parser
 import net.recommenders.rival.core.SimpleParser
-import net.recommenders.rival.evaluation.metric.error.RMSE
-import net.recommenders.rival.evaluation.metric.ranking.NDCG
-import net.recommenders.rival.evaluation.metric.ranking.Precision
+import net.recommenders.rival.evaluation.metric.error.{MAE, RMSE}
+import net.recommenders.rival.evaluation.metric.ranking.{MAP, NDCG, PopularityStratifiedRecall, Precision, Recall}
 import net.recommenders.rival.evaluation.strategy.EvaluationStrategy
 import net.recommenders.rival.recommend.frameworks.RecommenderIO
 import net.recommenders.rival.recommend.frameworks.exceptions.RecommenderException
@@ -54,8 +53,6 @@ import io.seldon.memcache.SecurityHashPeer
 import io.seldon.recommendation.{RecommendationPeer, RecommendationResult}
 import io.seldon.spark.SparkUtils
 import org.apache.mahout.cf.taste.impl.recommender.GenericRecommendedItem
-//import org.apache.spark.h2o.H2OContext
-import org.apache.spark.rdd.JdbcRDD
 import org.apache.spark.sql.{SQLContext, SaveMode}
 import org.apache.spark.sql.hive.HiveContext
 import org.apache.spark.sql.types._
@@ -63,16 +60,6 @@ import org.apache.spark.{SparkConf, SparkContext}
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.context.ApplicationListener
 import org.springframework.context.event.ContextRefreshedEvent
-import org.springframework.context.support.ClassPathXmlApplicationContext
-import org.springframework.test.context.ContextConfiguration
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner
-import org.springframework.web.context.WebApplicationContext
-import org.springframework.web.context.support.WebApplicationContextUtils
-//import water.fvec.H2OFrame
-
-import scala.collection.JavaConverters._
-import scala.concurrent.duration.Duration
-import scala.concurrent.{Await, Promise}
 import scala.io.Source
 import scala.util.Try
 //import scalikejdbc._
@@ -82,7 +69,7 @@ import scala.util.Try
 object SeldonEvaluator {
   val PERCENTAGE: Float = 0.8f
   val NEIGH_SIZE: Int = 50
-  val AT: Int = 10
+  val ATS = Array[Int](1, 3, 5, 10, 20, 30, 50)
   val REL_TH: Double = 3.0
   val SEED: Long = 2048L
 
@@ -96,6 +83,9 @@ object SeldonEvaluator {
 
   val appConfig = ConfigFactory.parseResourcesAnySyntax("env").withFallback(ConfigFactory.parseResourcesAnySyntax("application"))
   val config = ConfigFactory.load(appConfig)
+
+  val algos = Array("RECENT_MATRIX_FACTOR", "RECENT_SIMILAR_ITEMS", "RECENT_TOPIC_MODEL", "WORD2VEC")
+
   //val config = ConfigFactory.load("application.conf")
 
   // DBs.setup/DBs.setupAll loads specified JDBC driver classes.
@@ -166,9 +156,13 @@ object SeldonEvaluator {
     var rmseRes: Double = 0.0
     val i: Int = 0
 
-    val testModel: DataModel[Long, Long] = loadDataModel(splitPath + "test_" + i + ".csv")
-    val recModel: DataModel[Long, Long] = loadDataModel(recPath + "recs_" + i + ".csv")
+    val testschema = StructType(Seq(StructField("user", LongType, false), StructField("item", LongType, false), StructField("preference", DoubleType, false), StructField("timestamp", LongType, true)))
+    val tests = spark.read.option("delimiter", "\t").option("header","false").schema(testschema).csv(splitPath + "test_" + i + ".csv")
+    val recschema = StructType(Seq(StructField("user", LongType, false), StructField("item", LongType, false), StructField("preference", DoubleType, false), StructField("timestamp", LongType, true)))
+    val recs = spark.read.option("delimiter", "\t").option("header","false").schema(recschema).csv(recPath + "recs_" + i + ".csv")
 
+
+    val testModel: DataModel[Long, Long] = loadDataModel(splitPath + "test_" + i + ".csv")
 
     /*val testFile: File = new File(splitPath + "test_" + i + ".csv")
     val recFile: File = new File(recPath + "recs_" + i + ".csv")
@@ -183,18 +177,44 @@ object SeldonEvaluator {
         e.printStackTrace
       }
     }*/
-    val ndcg: NDCG[Long, Long] = new NDCG[Long, Long](recModel, testModel, Array[Int](AT))
-    ndcg.compute
-    ndcgRes += ndcg.getValueAt(AT)
-    val rmse: RMSE[Long, Long] = new RMSE[Long, Long](recModel, testModel)
-    rmse.compute
-    rmseRes += rmse.getValue
-    val precision: Precision[Long, Long] = new Precision[Long, Long](recModel, testModel, REL_TH, Array[Int](AT))
-    precision.compute
-    precisionRes += precision.getValueAt(AT)
-    System.out.println("NDCG@" + AT + ": " + ndcgRes)
-    System.out.println("RMSE: " + rmseRes)
-    System.out.println("P@" + AT + ": " + precisionRes)
+
+    algos.foreach(algo =>{
+      val recModel: DataModel[Long, Long] = loadDataModel(recPath + algo + ".csv")
+
+      val mae: MAE[Long, Long] = new MAE[Long, Long](recModel, testModel)
+      mae.compute
+
+      val rmse: RMSE[Long, Long] = new RMSE[Long, Long](recModel, testModel)
+      rmse.compute
+
+      val ndcg: NDCG[Long, Long] = new NDCG[Long, Long](recModel, testModel, ATS)
+      ndcg.compute
+
+      val precision: Precision[Long, Long] = new Precision[Long, Long](recModel, testModel, REL_TH, ATS)
+      precision.compute
+
+      val map: MAP[Long, Long] = new MAP[Long, Long](recModel, testModel, REL_TH, ATS)
+      map.compute
+
+      val recall: Recall[Long, Long] = new Recall[Long, Long](recModel, testModel, REL_TH, ATS)
+      recall.compute
+
+      /*val pStRecall: PopularityStratifiedRecall[Long, Long] = new PopularityStratifiedRecall[Long, Long](recModel, testModel, REL_TH, Array[Int](AT5,AT10,AT20))
+      pStRecall.compute*/
+      println("-------------------------")
+      System.out.println(algo+"- MAE: " + mae.getValue)
+      System.out.println(algo+"- RMSE: " + rmse.getValue)
+
+
+      ATS.foreach(AT =>{
+        println("-------------------------")
+        System.out.println(algo+"- NDCG@" + AT + ": " + ndcg.getValueAt(AT))
+        System.out.println(algo+"- Precision@" + AT + ": " + precision.getValueAt(AT))
+        System.out.println(algo+"- MAP@" + AT + ": " + map.getValueAt(AT))
+        System.out.println(algo+"- Recall@" + AT + ": " + recall.getValueAt(AT))
+      })
+    })
+
   }
 
 
@@ -212,7 +232,7 @@ object SeldonEvaluator {
       }
       cnt += 1f
       val pct = (cnt / len) * 100
-      if (pct % 2 == 0) println(s"#### filePath ${pct}% :(${cnt} of ${len}) completed")
+      //if (pct % 2 == 0) println(s"#### filePath ${pct}% :(${cnt} of ${len}) completed")
     }
     dataSource.close
     dataModel
@@ -221,8 +241,8 @@ object SeldonEvaluator {
   def loadH2ODataModel(filePath: String): DataModel[Long, Long] = {
     val dataModel = new DataModel[Long, Long]
 
-    //val h2oContext = H2OContext.getOrCreate(sc)
-   /* val hdf: H2OFrame = new H2OFrame(new File(filePath))
+    /*val h2oContext = H2OContext.getOrCreate(sc)
+    val hdf: H2OFrame = new H2OFrame()(new File(filePath))
 
     val rdd = h2oContext.asRDD(hdf)
     val df = h2oContext.asDataFrame(hdf)(spark)
@@ -241,17 +261,16 @@ object SeldonEvaluator {
       cnt += 1f
       val pct = (cnt/len)*100
       if(pct%2 ==0) println(s"#### test ${pct}% :(${cnt} of ${len}) completed")
-    })
-*/
+    })*/
     dataModel
   }
 
   def loadSparkDataModel(filePath: String): DataModel[Long, Long] = {
     val schema = StructType(Seq(StructField("user", LongType, false), StructField("item", LongType, false), StructField("preference", DoubleType, false), StructField("timestamp", LongType, true)))
     val dataModel = new DataModel[Long, Long]
-    val test = spark.read.format("com.databricks.spark.csv").option("delimiter", "\t").option("header","false").schema(schema).load(filePath)
+    val test = spark.read.option("delimiter", "\t").option("header","false").schema(schema).csv(filePath)
     //val peopleSchemaRDD = spark.applySchema(test.rdd, schema)
-    test.registerTempTable("test")
+    test.createTempView("test")
     val df = spark.sql("SELECT user, item, preference, timestamp FROM test")
     df.cache()
 

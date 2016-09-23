@@ -25,11 +25,18 @@ import _root_.io.seldon.spark.rdd.FileUtils
 import io.seldon.spark.zookeeper.ZkCuratorHandler
 import java.io.File
 import java.text.SimpleDateFormat
+
 import org.apache.curator.utils.EnsurePath
 import org.apache.spark._
 import org.apache.log4j.{Level, Logger}
 import org.apache.spark.SparkContext._
-import org.apache.spark.mllib.recommendation.{Rating, ALS, MatrixFactorizationModel}
+import org.apache.spark.ml.recommendation.{ALS, ALSModel}
+import org.apache.spark.ml.recommendation.ALS.Rating
+import org.apache.spark.mllib.recommendation.MatrixFactorizationModel
+import org.apache.spark.sql.SQLContext
+
+import scala.collection.mutable.ArrayBuffer
+//import org.apache.spark.mllib.recommendation.{Rating, ALS, MatrixFactorizationModel}
 import org.apache.spark.rdd._
 import org.jets3t.service.S3Service
 import org.jets3t.service.impl.rest.httpclient.RestS3Service
@@ -122,65 +129,24 @@ class MfModelCreation(private val sc : SparkContext,config : MfConfig) {
       println("output file location must start with local:// or s3n://")
       sys.exit(1)
     }
-    val actionWeightings = config.actionWeightings.getOrElse(List(ActionWeighting()))
-    // any action not mentioned in the weightings map has a default score of 0.0
-    val weightingsMap = actionWeightings.map(
-      aw => (aw.actionType, (aw.valuePerAction,aw.maxSum))
-    ).toMap.withDefaultValue(.0,.0)
-
-    println("Using weightings map"+weightingsMap)
     val startTime = System.currentTimeMillis()
-    Logger.getLogger("org.apache.spark").setLevel(Level.WARN)
-    Logger.getLogger("org.eclipse.jetty.server").setLevel(Level.OFF)
-    // set up environment
-    val timeStart = System.currentTimeMillis()
-    val glob= toSparkResource(inputFilesLocation, inputDataSourceMode) + ((date - daysOfActions + 1) to date).mkString("{", ",", "}")
-    println("Looking at "+glob)
-    val actions:RDD[((Int, Int), Int)] = sc.textFile(glob)
-      .map { line =>
-        val json = parse(line)
-        import org.json4s._
-        implicit val formats = DefaultFormats
-        val user = (json \ "userid").extract[Int]
-        val item = (json \ "itemid").extract[Int]
-        val actionType = (json \"type").extract[Int]
-        ((item,user),actionType)
-      }.repartition(2).cache()
-
-    // group actions by user-item key
-    val actionsByType:RDD[((Int,Int),List[Int])] = actions.combineByKey((x:Int)=>List[Int](x),
-                                                                        (list:List[Int],y:Int)=>y :: list,
-                                                                        (l1:List[Int],l2:List[Int])=> l1 ::: l2)
-    // count the grouped actions by action type
-    val actionsByTypeCount:RDD[((Int,Int),Map[Int,Int])] = actionsByType.map{
-      case (key,value:List[Int]) => (key,value.groupBy(identity).mapValues(_.size).map(identity))
-    }
-
-    // apply weigtings map
-    val actionsByScore:RDD[((Int,Int),Double)] = actionsByTypeCount.mapValues{
-      case x:Map[Int,Int]=> x.map {
-        case y: (Int, Int) => Math.min(weightingsMap(y._1)._1 * y._2, weightingsMap(y._1)._2)
-      }.reduce(_+_)
-    }
-
-    actionsByScore.take(10).foreach(println)
-    val itemsByCount: RDD[(Int, Int)] = actionsByScore.map(x => (x._1._1, 1)).reduceByKey(_ + _)
-    val itemsCount = itemsByCount.count()
-    println("total actions " + actions.count())
-    println("total actions normalized" + actionsByScore.count())
-    println("total items " + itemsByCount.count())
-
-    val usersByCount = actionsByScore.map(x=>(x._1._2,1)).reduceByKey(_+_)
-    val usersCount = usersByCount.count()
-    println("total users " + usersCount)
-
-    val ratings = actionsByScore.map{
-      case ((product, user), rating) => Rating(user,product,rating)
-    }.repartition(2).cache()
-
+    val glob = toSparkResource(inputFilesLocation, inputDataSourceMode) + ((date - daysOfActions + 1) to date).mkString("{", ",", "}")
+    val ratings: RDD[Rating[Int]] = MfModelCreation.prepareRatings(glob, config, sc)
     val timeFirst = System.currentTimeMillis()
-    println("munging data took "+(timeFirst-timeStart)+"ms")
-    val model: MatrixFactorizationModel = ALS.trainImplicit(ratings, rank, iterations, lambda, alpha)
+    println("munging data took "+(timeFirst-timeFirst)+"ms")
+    val sqlContext = new SQLContext(sc)
+    import sqlContext.implicits._
+    val als = new ALS()
+        .setImplicitPrefs(true)
+        //.setNonnegative(true)
+        .setMaxIter(iterations)
+        .setRegParam(lambda)
+        .setAlpha(alpha)
+        .setUserCol("userId")
+        .setItemCol("itemId")
+        .setRatingCol("preference")
+    val model = als.fit(ratings.toDF(colNames = "userId", "itemId", "preference"))
+    //val model: MatrixFactorizationModel = ALS.trainImplicit(ratings, rank, iterations, lambda, alpha)
     println("training model took "+(System.currentTimeMillis() - timeFirst)+"ms")
     outputModelToFile(model, toOutputResource(outputFilesLocation,outputDataSourceMode), outputDataSourceMode, client,date)
 
@@ -198,8 +164,10 @@ class MfModelCreation(private val sc : SparkContext,config : MfConfig) {
     
     println(List(rank,lambda,iterations,alpha,0,System.currentTimeMillis() - timeFirst).mkString(","))
 
-    model.userFeatures.unpersist()
-    model.productFeatures.unpersist()
+    model.userFactors.unpersist()
+    model.itemFactors.unpersist()
+    /*model.userFeatures.unpersist()
+    model.productFeatures.unpersist()*/
     val rdds = sc.getRDDStorageInfo
     if(sc.getPersistentRDDs !=null) 
     {
@@ -214,7 +182,9 @@ class MfModelCreation(private val sc : SparkContext,config : MfConfig) {
     println("Time taken " + (System.currentTimeMillis() - startTime))
   }
 
-  def outputModelToLocalFile(model: MatrixFactorizationModel, outputFilesLocation: String, yesterdayUnix: Long) = {
+
+
+  def outputModelToLocalFile(model: ALSModel, outputFilesLocation: String, yesterdayUnix: Long) = {
     new File(outputFilesLocation+yesterdayUnix).mkdirs()
     val userFile = new File(outputFilesLocation+yesterdayUnix+"/userFeatures.txt");
     userFile.createNewFile()
@@ -228,20 +198,28 @@ class MfModelCreation(private val sc : SparkContext,config : MfConfig) {
     val gzipProdFile = FileUtils.gzip(productFile.getAbsolutePath)
   }
 
-  def outputToFile(model: MatrixFactorizationModel, userFile: File, prodFile: File): Unit = {
+  def outputToFile(model: ALSModel, userFile: File, prodFile: File): Unit = {
+    //model.write.overwrite().save(file)
+    //model.itemFactors.write.save(prodFile.getAbsolutePath)
     printToFile(userFile) {
-      p => model.userFeatures.collect().foreach {
+      /*model.userFactors.map(row => {
+        val userId = row.getAs[Long]("userId")
+        val itemId = row.getAs[Long]("itemId")
+        val preference = row.getAs[Double]("preference")
+
+      }).collect()*/
+      p => model.userFactors.collect().foreach {
         u => {
-          val strings = u._2.map(d => f"$d%.5g")
-          p.println(u._1.toString + "|" + strings.mkString(","))
+          val strings = u.getAs[ArrayBuffer[Float]](1).map(d => f"$d%.5g")
+          p.println(u.get(0).toString + "|" + strings.mkString(","))
         }
       }
     }
     printToFile(prodFile) {
-      p => model.productFeatures.collect().foreach {
+      p => model.itemFactors.collect().foreach {
         u => {
-          val strings = u._2.map(d => f"$d%.5g")
-          p.println(u._1.toString + "|" + strings.mkString(","))
+          val strings = u.getAs[ArrayBuffer[Float]](1).map(d => f"$d%.5g")
+          p.println(u.get(0).toString + "|" + strings.mkString(","))
         }
 
       }
@@ -249,12 +227,13 @@ class MfModelCreation(private val sc : SparkContext,config : MfConfig) {
 
   }
 
-  def outputModelToS3File(model: MatrixFactorizationModel, outputFilesLocation: String, yesterdayUnix: Long) = {
+  def outputModelToS3File(model: ALSModel, outputFilesLocation: String, yesterdayUnix: Long) = {
     // write to temp file first
     val tmpUserFile = File.createTempFile("mfmodelUser",".tmp");
     tmpUserFile.deleteOnExit()
     val tmpProdFile = File.createTempFile("mfModelProduct",".tmp")
     tmpProdFile.deleteOnExit()
+
     outputToFile(model, tmpUserFile, tmpProdFile)
     val gzipUserFile:File = FileUtils.gzip(tmpUserFile.getAbsolutePath)
     println(gzipUserFile.getAbsolutePath)
@@ -280,7 +259,7 @@ class MfModelCreation(private val sc : SparkContext,config : MfConfig) {
     System.out.println("Uploading product features to " + bucketString + " bucket " + objProd.getKey + " file")
   }
 
-  def outputModelToFile(model: MatrixFactorizationModel,outputFilesLocation:String, outputType:DataSourceMode, client:String, yesterdayUnix: Long) {
+  def outputModelToFile(model: ALSModel, outputFilesLocation:String, outputType:DataSourceMode, client:String, yesterdayUnix: Long) {
     outputType match {
       case LOCAL => outputModelToLocalFile(model,outputFilesLocation,  yesterdayUnix)
       case S3 => outputModelToS3File(model, outputFilesLocation, yesterdayUnix)
@@ -340,6 +319,64 @@ object MfModelCreation {
        println("Warning: using default configuration - no zkHost!");
        c
      }
+  }
+
+  def prepareRatings(glob:String, config:MfConfig, sc:SparkContext): RDD[Rating[Int]] = {
+    val actionWeightings = config.actionWeightings.getOrElse(List(ActionWeighting()))
+    // any action not mentioned in the weightings map has a default score of 0.0
+    val weightingsMap = actionWeightings.map(
+      aw => (aw.actionType, (aw.valuePerAction, aw.maxSum))
+    ).toMap.withDefaultValue(.0, .0)
+
+    println("Using weightings map" + weightingsMap)
+    Logger.getLogger("org.apache.spark").setLevel(Level.WARN)
+    Logger.getLogger("org.eclipse.jetty.server").setLevel(Level.OFF)
+    // set up environment
+
+    println("Looking at " + glob)
+    val actions: RDD[((Int, Int), Int)] = sc.textFile(glob)
+      .map { line =>
+        val json = parse(line)
+        import org.json4s._
+        implicit val formats = DefaultFormats
+        val user = (json \ "userid").extract[Int]
+        val item = (json \ "itemid").extract[Int]
+        val actionType = (json \ "type").extract[Int]
+        ((item, user), actionType)
+      }.repartition(2).cache()
+
+    // group actions by user-item key
+    val actionsByType: RDD[((Int, Int), List[Int])] = actions.combineByKey((x: Int) => List[Int](x),
+      (list: List[Int], y: Int) => y :: list,
+      (l1: List[Int], l2: List[Int]) => l1 ::: l2)
+    // count the grouped actions by action type
+    val actionsByTypeCount: RDD[((Int, Int), Map[Int, Int])] = actionsByType.map {
+      case (key, value: List[Int]) => (key, value.groupBy(identity).mapValues(_.size).map(identity))
+    }
+
+    // apply weigtings map
+    val actionsByScore: RDD[((Int, Int), Double)] = actionsByTypeCount.mapValues {
+      case x: Map[Int, Int] => x.map {
+        case y: (Int, Int) => Math.min(weightingsMap(y._1)._1 * y._2, weightingsMap(y._1)._2)
+      }.reduce(_ + _)
+    }
+
+    actionsByScore.take(10).foreach(println)
+    val itemsByCount: RDD[(Int, Int)] = actionsByScore.map(x => (x._1._1, 1)).reduceByKey(_ + _)
+    val itemsCount = itemsByCount.count()
+    println("total actions " + actions.count())
+    println("total actions normalized" + actionsByScore.count())
+    println("total items " + itemsByCount.count())
+
+    val usersByCount = actionsByScore.map(x => (x._1._2, 1)).reduceByKey(_ + _)
+    val usersCount = usersByCount.count()
+    println("total users " + usersCount)
+
+    val ratings = actionsByScore.map {
+      case ((product, user), rating) => Rating(user, product, rating.toFloat)
+    }.repartition(2).cache()
+
+    ratings
   }
   
 

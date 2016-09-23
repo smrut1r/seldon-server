@@ -53,6 +53,7 @@ import io.seldon.db.jdo.JDOFactory
 import io.seldon.memcache.SecurityHashPeer
 import io.seldon.recommendation.{RecommendationPeer, RecommendationResult}
 import io.seldon.spark.SparkUtils
+import io.seldon.spark.mllib.{MfConfig, MfModelCreation}
 import org.apache.mahout.cf.taste.impl.recommender.GenericRecommendedItem
 import org.apache.spark.rdd.JdbcRDD
 import org.apache.spark.sql.{SQLContext, SaveMode}
@@ -156,9 +157,22 @@ object SeldonDataSplitter {
 
   def main(args: Array[String]) {
 
-    spark.read.json(dataFile).registerTempTable("actions")
+    /*spark.read.json(dataFile).createOrReplaceTempView("actions")
     val actionData = spark.sql("SELECT userid, itemid, type, timestamp_utc FROM actions")
-    actionData.repartition(1).write.mode(SaveMode.Overwrite).json(preparedFile)
+    actionData.repartition(1).write.mode(SaveMode.Overwrite).json(preparedFile)*/
+
+    var c = MfConfig()
+    val parser = new scopt.OptionParser[Unit]("SeldonDataSplitter") {
+      opt[String]('c', "client") required() valueName("<client>") foreach { x => c = c.copy(client = x) } text("client name (will be used as db and folder suffix)")
+      opt[String]('z', "zookeeper") valueName("zookeeper hosts") foreach { x => c = c.copy(zkHosts = x) } text("zookeeper hosts (comma separated)")
+    }
+    parser.parse(args)
+    val config = MfModelCreation.updateConf(c)
+    val ratings = MfModelCreation.prepareRatings(dataFile, config, sc)
+
+    import spark.implicits._
+    ratings.toDF().repartition(1).write.mode(SaveMode.Overwrite).json(preparedFile) //.map(r => (r.user, r.item, r.rating))
+
     prepareSplits(percentage, preparedFile, folder, modelPath)
 
     sc.stop()

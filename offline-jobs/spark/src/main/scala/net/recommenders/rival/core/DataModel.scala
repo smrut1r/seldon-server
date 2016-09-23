@@ -44,7 +44,7 @@ case class DataModel[U, I](userItemPreferences : util.Map[U, util.Map[I, Double]
     return userItemTimestamps
   }
 
-  def addPreference(u: U, i: I, d: Double) {
+  def addPreference(u: U, i: I, d: java.lang.Double) {
     var userPreferences: util.Map[I, Double] = userItemPreferences.get(u)
     if (userPreferences == null) {
       userPreferences = new util.HashMap[I, Double]
@@ -64,7 +64,7 @@ case class DataModel[U, I](userItemPreferences : util.Map[U, util.Map[I, Double]
     itemPreferences.put(u, preference)
   }
 
-  def addTimestamp(u: U, i: I, t: Long) {
+  def addTimestamp(u: U, i: I, t: java.lang.Long) {
     var userTimestamps: util.Map[I, util.Set[Long]] = userItemTimestamps.get(u)
     if (userTimestamps == null) {
       userTimestamps = new util.HashMap[I, util.Set[Long]]

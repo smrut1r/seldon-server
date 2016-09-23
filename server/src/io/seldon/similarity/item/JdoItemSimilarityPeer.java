@@ -48,7 +48,7 @@ public class JdoItemSimilarityPeer extends ClientPersistable implements IItemSim
 	public Map<Long, Double> getSimilarItems(long itemId,Set<Integer> dimensions,int max) {
 		Collection<Object[]> results;
 		Query query;
-		if (dimensions.isEmpty() || (dimensions.size() == 1 && dimensions.iterator().next() == Constants.DEFAULT_DIMENSION))
+		if (dimensions==null || dimensions.isEmpty() || (dimensions.size() == 1 && dimensions.iterator().next() == Constants.DEFAULT_DIMENSION))
 		{
 			String sql = "select isim.item_id2 as item_id,score from item_similarity isim where isim.item_id=? union select isim.item_id,score from item_similarity isim where isim.item_id2=? order by score desc";
 			if (max > 0)

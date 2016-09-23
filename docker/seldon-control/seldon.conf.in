@@ -57,7 +57,8 @@
                     "name": "io.seldon.algorithm.general.numrecentactionstouse",
                     "value": "5"
                 }
-            ]
+            ],
+             "zk_activate_node": "/config/itemsim"
         },
         "mfRecommender": {
             "config": [
