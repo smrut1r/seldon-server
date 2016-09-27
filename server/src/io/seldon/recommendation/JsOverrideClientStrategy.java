@@ -57,7 +57,8 @@ public class JsOverrideClientStrategy implements ClientStrategy {
         oldAlgNamesToNew.put("SIMILAR_ITEMS", "itemSimilarityRecommender");
         oldAlgNamesToNew.put("RECENT_ITEMS", "recentItemsRecommender");
         oldAlgNamesToNew.put("MOST_POPULAR", "mostPopularRecommender");
-        
+
+        oldAlgNamesToNew.put("USER_BASED", "mahoutUBRecommender");
         oldAlgNamesToNew.put("MATRIX_FACTOR", "mfRecommender");
         oldAlgNamesToNew.put("RECENT_MATRIX_FACTOR", "recentMfRecommender");
         oldAlgNamesToNew.put("RECENT_SIMILAR_ITEMS", "itemSimilarityRecommender");

@@ -45,7 +45,7 @@ public class VwFeatureExtractor {
 			JsonNode jnode = json.get(field);
 			if (jnode.isNumber())
 			{
-				features.put(field, (float)jnode.asDouble());
+				features.put(field, (float)jnode.getDoubleValue());
 			}
 			else if (jnode.isObject())
 			{
@@ -66,7 +66,7 @@ public class VwFeatureExtractor {
 			JsonNode jnode = json.get(field);
 			if (jnode.isNumber())
 			{
-				features.put(field, (float)jnode.asDouble());
+				features.put(field, (float)jnode.getValueAsDouble());
 			}
 		}
 		return new Namespace(name,features);

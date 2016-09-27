@@ -250,6 +250,7 @@ class Recommender extends Actor {
     println("Done2")
 
     val algos = new util.ArrayList[String]()
+    algos.add("USER_BASED")
     algos.add("RECENT_MATRIX_FACTOR")
     algos.add("RECENT_SIMILAR_ITEMS")
     algos.add("RECENT_TOPIC_MODEL")

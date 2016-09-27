@@ -20,6 +20,7 @@
     <properties>
         <spring.version>4.1.0.RELEASE</spring.version>
         <curator.version>2.7.1</curator.version>
+        <mahout.version>0.12.2</mahout.version>
         <project.packaging>war</project.packaging>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <exclude.tests>no-exclusions</exclude.tests>
@@ -273,13 +274,23 @@
                     <artifactId>jackson-mapper-asl</artifactId>
                 </exclusion>
             </exclusions>
-            <version>0.8</version>
+            <version>0.9</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.mahout</groupId>
+            <artifactId>mahout-math</artifactId>
+            <version>${mahout.version}</version>
         </dependency>
         <dependency>
 			<groupId>org.apache.mahout</groupId>
 			<artifactId>mahout-examples</artifactId>
-			<version>0.8</version>
+			<version>${mahout.version}</version>
 		</dependency>
+        <dependency>
+            <groupId>com.googlecode.concurrentlinkedhashmap</groupId>
+            <artifactId>concurrentlinkedhashmap-lru</artifactId>
+            <version>1.4.2</version>
+        </dependency>
         <dependency>
             <groupId>org.apache.httpcomponents</groupId>
             <artifactId>httpclient</artifactId>

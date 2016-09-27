@@ -60,6 +60,10 @@
             ],
              "zk_activate_node": "/config/itemsim"
         },
+        "mahoutUBRecommender": {
+            "config": [],
+            "zk_activate_node": "/config/mahout"
+        },
         "mfRecommender": {
             "config": [
                 {
@@ -169,6 +173,37 @@
                  },
                  "job_type": "spark"
              }
+        },
+        "mahout": {
+            "config": {
+                "activate": true,
+                "days": 100,
+                "inputPath": "%SELDON_MODELS%",
+                "outputPath": "%SELDON_MODELS%",
+                "startDay": 1,
+                "actionWeightings": [
+                                        {"actionType": 1, "valuePerAction": 1.0, "maxSum": 5.0},
+                                        {"actionType": 2, "valuePerAction": 2.0, "maxSum": 10.0},
+                                        {"actionType": 3, "valuePerAction": 3.0, "maxSum": 15.0}
+                                    ]
+            },
+            "training": {
+                "job_info": {
+                    "cmd": "%SPARK_HOME%/bin/spark-submit",
+                    "cmd_args": [
+                        "--class",
+                        "io.seldon.spark.mahout.MahoutModelCreation",
+                        "--master",
+                        "spark://spark-master:7077",
+                        "%SELDON_SPARK_HOME%/seldon-spark-%SELDON_VERSION%-jar-with-dependencies.jar",
+                        "--client",
+                        "%CLIENT_NAME%",
+                        "--zookeeper",
+                        "%ZK_HOSTS%"
+                    ]
+                },
+                "job_type": "spark"
+            }
         },
         "matrix-factorization": {
             "config": {
