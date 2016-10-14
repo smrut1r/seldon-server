@@ -64,7 +64,7 @@ public class MahoutUBRecommender implements ItemRecommendationAlgorithm {
                 }
 
             } else {
-                List<RecommendedItem> recommendations = recommender.recommend(user, 20);
+                List<RecommendedItem> recommendations = recommender.recommend(user, 10);
                 for (RecommendedItem recommendation : recommendations) {
                     recs.add(new ItemRecommendationResultSet.ItemRecommendationResult(recommendation.getItemID(),recommendation.getValue()));
                 }

@@ -39,7 +39,7 @@ import java.io.IOException
 import java.io.UnsupportedEncodingException
 import java.lang.reflect.InvocationTargetException
 import java.util.List
-import java.lang.Long
+import java.lang.{Float, Long}
 import java.sql.{DriverManager, ResultSet}
 import java.util
 import java.util.concurrent.TimeUnit
@@ -250,11 +250,11 @@ class Recommender extends Actor {
     println("Done2")
 
     val algos = new util.ArrayList[String]()
-    algos.add("USER_BASED")
-    algos.add("RECENT_MATRIX_FACTOR")
+    /*algos.add("RECENT_MATRIX_FACTOR")
     algos.add("RECENT_SIMILAR_ITEMS")
     algos.add("RECENT_TOPIC_MODEL")
-    algos.add("WORD2VEC")
+    algos.add("WORD2VEC")*/
+    algos.add("USER_BASED")
 
     val trainModel = getDataModel("train", modelPath, recPath)
     val testModel = getDataModel("test", modelPath, recPath)
@@ -305,7 +305,7 @@ class Recommender extends Actor {
     case RecRequest(Env(peer, client, path), algos, user, scoreItems, count) => {
       try {
         val recResults = peer.getRecommendations(user, client, null, 0, null, count, "1L", 0L, "", "", algos, scoreItems)
-        val items = recResults.getRecs().asScala.map(x => new GenericRecommendedItem(x.getContent, (SCALE * x.getPrediction).toFloat)).asJava
+        val items = recResults.getRecs().asScala.filter(x => !Float.isNaN(x.getPrediction.toFloat)).map(x => new GenericRecommendedItem(x.getContent, (SCALE * x.getPrediction).toFloat)).asJava
         //sender ! items
         val fileName = algos.toArray().mkString("+") + ".csv"
         val file = new File(path + fileName)

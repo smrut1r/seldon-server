@@ -20,6 +20,39 @@
         <mahout.version>0.12.2</mahout.version>
     </properties>
 
+    <repositories>
+        <repository>
+            <id>IESL Releases </id>
+            <name>IESL Repo </name>
+            <url>https://dev-iesl.cs.umass.edu/nexus/content/groups/public</url>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
+            <releases>
+                <enabled>true</enabled>
+            </releases>
+        </repository>
+        <repository>
+            <id>iesl.cs.umass.edu3</id>
+            <name>IESL repository</name>
+            <url>https://dev-iesl.cs.umass.edu/nexus/content/repositories/public-snapshots/</url>
+        </repository>
+        <repository>
+            <id>scala-tools.org</id>
+            <name>Scala-Tools Maven2 Repository</name>
+            <url>http://scala-tools.org/repo-releases</url>
+        </repository>
+        <repository>
+            <id>edu.umass.ciir.snapshots</id>
+            <name>CIIR Nexus Snapshots</name>
+            <url>http://scm-ciir.cs.umass.edu:8080/nexus/content/repositories/snapshots/</url>
+        </repository>
+        <repository>
+            <id>edu.umass.ciir.releases</id>
+            <name>CIIR Nexus Releases</name>
+            <url>http://scm-ciir.cs.umass.edu:8080/nexus/content/repositories/releases/</url>
+        </repository>
+    </repositories>
    <pluginRepositories>
 	<pluginRepository>
 		<id>scala-tools.org</id>
@@ -367,6 +400,14 @@
           <artifactId>mahout-math</artifactId>
           <version>${mahout.version}</version>
       </dependency>
+
+      <!-- https://mvnrepository.com/artifact/org.nlp4l/nlp4l-framework-library_2.11 -->
+      <dependency>
+          <groupId>org.nlp4l</groupId>
+          <artifactId>nlp4l-framework-library_2.11</artifactId>
+          <version>0.4.0</version>
+      </dependency>
+
 
   </dependencies>
   

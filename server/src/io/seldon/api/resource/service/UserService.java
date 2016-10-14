@@ -168,7 +168,7 @@ public class UserService {
             }
             else {
                 logger.info("getClientUserId(" + id + "): USER NOT FOUND");
-                throw new APIException(APIException.USER_NOT_FOUND);
+                //throw new APIException(APIException.USER_NOT_FOUND);
             }
         }
         return res;
