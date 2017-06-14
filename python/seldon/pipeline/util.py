@@ -125,6 +125,11 @@ class PipelineWrapper(object):
             return pd.read_json(local_file,orient='records')
 
 
+    def create_dataframe_from_files(self,locations,df_format="json",csv_dates=None,index_col=None):
+        local_file= self.work_folder+"/data"
+        self._copy_features_locally(locations,local_file,df_format)
+        return self._convert_dataframe(local_file,df_format,csv_dates,index_col)
+
     def create_dataframe(self,data=None,df_format="json",csv_dates=None,index_col=None):
         """
         Create Pandas dataframe from external source
@@ -149,9 +154,7 @@ class PipelineWrapper(object):
                 futil.copy(data,local_file)
                 return self._convert_dataframe(local_file,df_format,csv_dates,index_col)
             elif isinstance(data,list):
-                local_file= self.work_folder+"/data"
-                self._copy_features_locally(data,local_file,df_format)
-                return self._convert_dataframe(local_file,df_format,csv_dates,index_col)
+                return np.array(data).reshape(1, -1)
             else:
                 raise ValueError("unknown argument type for data")
         

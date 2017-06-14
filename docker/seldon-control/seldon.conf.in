@@ -73,6 +73,14 @@
             ],
             "zk_activate_node": "/config/mf"
         },
+        "mfUserClustersRecommender": {
+            "config": [],
+            "zk_activate_node": "/config/mfclusters"
+        },
+	"mostPopularInSessionRecommender": {
+            "config": [],
+            "zk_activate_node": "/config/mostpopulardim"
+        },
         "mostPopularRecommender": {
             "config": []
         },
@@ -449,6 +457,8 @@
                     "cmd_args": [
                         "--class",
                         "io.seldon.spark.mllib.SimilarItems",
+			"--conf",
+			"spark.driver.maxResultSize=3g",
                         "--master",
                         "spark://spark-master:7077",
                         "%SELDON_SPARK_HOME%/seldon-spark-%SELDON_VERSION%-jar-with-dependencies.jar",
@@ -572,7 +582,7 @@
                 "spark://spark-master:7077",
                 "%SELDON_SPARK_HOME%/seldon-spark-%SELDON_VERSION%-jar-with-dependencies.jar",
                 "--input-path-pattern",
-                "%SELDON_LOGS%/actions.%y/%m%d/*/*",
+                "%SELDON_LOGS%/actions.%y/%m/%d/*/*",
                 "--output-path-dir",
                 "%SELDON_MODELS%",
                 "--input-date-string",
@@ -592,7 +602,7 @@
                 "spark://spark-master:7077",
                 "%SELDON_SPARK_HOME%/seldon-spark-%SELDON_VERSION%-jar-with-dependencies.jar",
                 "--input-path-pattern",
-                "%SELDON_LOGS%/events.%y/%m%d/*/*",
+                "%SELDON_LOGS%/events.%y/%m/%d/*/*",
                 "--output-path-dir",
                 "%SELDON_MODELS%",
                 "--input-date-string",
@@ -611,5 +621,6 @@
     "zk_hosts": "zookeeper-1:2181,zookeeper-2:2181,zookeeper-3:2181",
     "zkroot": "/seldon-data/conf/zkroot",
     "grafana_endpoint" : "http://monitoring-grafana",
-    "grafana_dashboard_template" : "/home/seldon/client-dashboard.json"
+    "grafana_dashboard_template" : "/home/seldon/client-dashboard.json",
+    "grpc_util_home" : "/home/seldon/grpc-util"
 }

@@ -7,4 +7,4 @@ COPY train_model.sh $SELDON_HOME/train_model.sh
 COPY load_model.sh $SELDON_HOME/load_model.sh
 COPY run_microservice.sh /run_microservice.sh
 
-CMD ["bash"]
+CMD ["/run_microservice.sh"]

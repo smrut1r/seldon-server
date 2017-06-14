@@ -64,16 +64,19 @@ def pull_all_nodes(zk_client,zkroot):
         get_all_nodes_list(zk_client, start_node, all_nodes_list)
     all_nodes_list = list(all_nodes_list)
     for node_path in all_nodes_list:
-        print "trying to sync ",node_path
-        node_value = node_get(zk_client,node_path)
-        if not node_value is None:
-            node_value = node_value.strip()
-            if is_json_data(node_value):
-                data = json_to_dict(node_value) if node_value != None and len(node_value)>0 else ""
-            else:
-                data = str(node_value)
-            data_fpath = zkroot + node_path + "/_data_"
-            write_data_to_file(data_fpath, data)
+        if node_path == "/config/topics" or node_path == "/config/clients" or node_path == "/config/changes" or node_path == "/config/users":
+            print "Ignoring kafka data node ",node_path
+        else:
+            print "trying to sync ",node_path
+            node_value = node_get(zk_client,node_path)
+            if not node_value is None:
+                node_value = node_value.strip()
+                if is_json_data(node_value):
+                    data = json_to_dict(node_value) if node_value != None and len(node_value)>0 else ""
+                else:
+                    data = str(node_value)
+                data_fpath = zkroot + node_path + "/_data_"
+                write_data_to_file(data_fpath, data)
 
 def json_compress(json_data):
     d = json.loads(json_data)
@@ -97,3 +100,7 @@ def node_get(zk_client, node_path):
         theValue = theValue[0]
     return theValue.strip() if theValue != None else theValue
 
+def node_delete(zk_client, node_path):
+    if zk_client.exists(node_path):
+        retVal = zk_client.delete(node_path)
+        print "deleted zk node[{node_path}]".format(node_path=node_path)

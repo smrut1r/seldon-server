@@ -21,13 +21,18 @@
 */
 package io.seldon.prediction;
 
+import com.fasterxml.jackson.databind.JsonNode;
+
+import io.seldon.api.rpc.ClassificationReply;
+import io.seldon.api.rpc.ClassificationRequest;
 import io.seldon.clustering.recommender.RecommendationContext.OptionsHolder;
 
-import org.codehaus.jackson.JsonNode;
+
 
 public interface PredictionAlgorithm {
 
-	 public PredictionsResult predict(String client, JsonNode json, OptionsHolder options);
+	public PredictionServiceResult predictFromJSON(String client, JsonNode json, OptionsHolder options);
+	public ClassificationReply predictFromProto(String client, ClassificationRequest request, OptionsHolder options);
 	 
 	 
 }

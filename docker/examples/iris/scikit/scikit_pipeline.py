@@ -14,7 +14,7 @@ def run_pipeline(events,models):
     tNameId = bt.Feature_id_transform(min_size=0,exclude_missing=True,zero_based=True,input_feature="name",output_feature="nameId")
     tAuto = pauto.Auto_transform(max_values_numeric_categorical=2,exclude=["nameId","name"])
     sk_classifier = RandomForestClassifier(verbose=1)
-    classifier = ske.SKLearnClassifier(clf=sk_classifier,target="nameId",excluded=["name"])
+    classifier = ske.SKLearnClassifier(clf=sk_classifier,target="nameId",excluded=["name"],target_readable="name")
 
     cv = cf.Seldon_KFold(classifier,5)
     logger.info("cross validation scores %s",cv.get_scores())
@@ -23,7 +23,7 @@ def run_pipeline(events,models):
     p = Pipeline(transformers)
 
     pw = sutl.Pipeline_wrapper()
-    df = pw.create_dataframe(events)
+    df = pw.create_dataframe_from_files(events)
     df2 = p.fit_transform(df)
     pw.save_pipeline(p,models)
     logger.info("cross validation scores %s",cv.get_scores())

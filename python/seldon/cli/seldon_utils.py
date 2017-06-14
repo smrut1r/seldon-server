@@ -55,19 +55,19 @@ def addClientDb(clientName, dbSettings, consumer_details=None):
 	db = MySQLdb.connect(host=dbSettings["host"],
                      	user=dbSettings["user"],
                       passwd=dbSettings["password"])
+        db.autocommit(True)
 	cur = db.cursor()
 	dir = os.path.dirname(os.path.abspath(__file__))
 	filename = os.path.join(dir, "dbschema/mysql/client.sql")
 	f = open(filename, 'r')
-	query = " ".join(f.readlines())
+	queries = " ".join(f.readlines())
 	numrows = cur.execute("SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = \'"+clientName+"\'")
 	if numrows < 1:
 		cur.execute("CREATE DATABASE "+clientName)
 		cur.execute("USE "+clientName)
-		cur.execute(query)
-		more = True
-		while more:
-			more = cur.nextset()
+                for query in queries.split(";"):
+                        if len(query.strip()) > 0:
+                                cur.execute(query+";")
 	else:
 		print("Client \'"+clientName+"\' has already been added to the DB")
 	cur.execute("USE API")
@@ -92,15 +92,18 @@ def addApiDb(dbName, dbSettings):
 	db = MySQLdb.connect(host=dbSettings["host"],
                      	user=dbSettings["user"],
                       passwd=dbSettings["password"])
+        db.autocommit(True)
 	cur = db.cursor()
 	dir = os.path.dirname(os.path.abspath(__file__))
 	filename = os.path.join(dir, "dbschema/mysql/api.sql")
 	f = open(filename, 'r')
-	query = " ".join(f.readlines())
+	queries = " ".join(f.readlines())
 	numrows = cur.execute("SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = \'api\'")
 	if numrows < 1:
 		print "Adding api DB to MySQL DB \'"+dbName+"\'"
-		cur.execute(query)
+                for query in queries.split(";"):
+                        if len(query.strip()) > 0:
+                                cur.execute(query+";")
 	else:
 		print "API DB has already been added to the MySQL DB \'"+dbName+"\'"
 
@@ -148,7 +151,7 @@ def get_editor():
     return os.environ["EDITOR"] if os.environ.has_key("EDITOR") else "vim"
 
 
-def add_grafana_dashboard(grafana_endpoint,client,quiet,template):
+def add_grafana_dashboard(grafana_endpoint,client,quiet,template,admin_password):
         if template is None:
                 dir = os.path.dirname(os.path.abspath(__file__))
                 filename = os.path.join(dir, "grafana/client-dashboard.json")
@@ -159,6 +162,6 @@ def add_grafana_dashboard(grafana_endpoint,client,quiet,template):
         jStr = jStr.replace("%CLIENT%",client)
         headers = {}
         headers["content-type"] = "application/json"
-        r = requests.post(grafana_endpoint+"/api/dashboards/db",data=jStr,headers=headers)
+        r = requests.post(grafana_endpoint+"/api/dashboards/db",data=jStr,headers=headers,auth=('admin', admin_password))
         if not quiet:
                 print "Adding grafana dashboard, response code",r.status_code

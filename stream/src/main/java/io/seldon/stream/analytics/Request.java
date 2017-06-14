@@ -21,11 +21,22 @@
 */
 package io.seldon.stream.analytics;
 
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 import com.fasterxml.jackson.databind.JsonNode;
 
 
 //Request(consumer: String, time : Long, httpmethod : String, path : String, exectime : Int, count : Int)
 public class Request {
+
+	Pattern recommendationPattern = Pattern.compile("(^/users/)([^/]+)(/recommendations)$");
+	Pattern actionPattern = Pattern.compile("^(/users/)([^/]+)(/actions)$");
+	Pattern actionPattern2 = Pattern.compile("^(/items/)([^/]+)(/actions)$");
+	Pattern actionPattern3 = Pattern.compile("^(/users/)([^/]+)(/actions/)([^/]+)$");
+	Pattern actionPattern4 = Pattern.compile("^(/items/)([^/]+)(/actions/)([^/]+)$");
+	Pattern actionPattern5 = Pattern.compile("^(/actions/)([^/]+)$");
+	Pattern itemPattern = Pattern.compile("^(/items/)([^/]+)$");
 
 	String consumer;
 	Long time;
@@ -41,9 +52,45 @@ public class Request {
 		consumer = j.get("consumer").asText();
 		time = j.get("time").asLong();
 		httpmethod = j.get("httpmethod").asText();
-		path = j.get("path").asText();
+		
+		path = createPath(j.get("path").asText());
 		exectime = j.get("exectime").asInt();
 		count = 1;
+	}
+	
+	private String createPath(String path)
+	{
+		if (path.startsWith("/js"))
+			return path;
+		else // try more likely recommendation pattern
+		{
+			final Matcher recMatcher = recommendationPattern.matcher(path);
+			if (recMatcher.matches()) 
+				return recMatcher.replaceFirst("$1{userid}$3");
+			else // try less likely other patterns
+			{
+				final Matcher actionMatcher = actionPattern.matcher(path);
+				final Matcher actionMatcher2 = actionPattern2.matcher(path);
+				final Matcher actionMatcher3 = actionPattern3.matcher(path);
+				final Matcher actionMatcher4 = actionPattern4.matcher(path);
+				final Matcher actionMatcher5 = actionPattern5.matcher(path);
+				final Matcher itemMatcher = itemPattern.matcher(path);
+				if (actionMatcher2.matches()) 
+					return actionMatcher2.replaceFirst("$1{itemid}$3");
+				else if (actionMatcher.matches()) 
+					return actionMatcher.replaceFirst("$1{userid}$3");
+				else if (itemMatcher.matches()) 
+					return itemMatcher.replaceFirst("$1{itemid}");
+				else if (actionMatcher3.matches()) 
+					return actionMatcher3.replaceFirst("$1{userid}$3{itemid}");
+				else if (actionMatcher4.matches()) 
+					return actionMatcher4.replaceFirst("$1{itemid}$3{userid}");
+				else if (actionMatcher5.matches()) 
+					return actionMatcher5.replaceFirst("$1{actionid}");
+				else
+					return path;
+			}
+		}
 	}
 	
 	public Request add(Request other)

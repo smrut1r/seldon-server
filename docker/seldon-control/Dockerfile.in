@@ -28,9 +28,10 @@ RUN mkdir -p /opt && \
     echo Hadoop ${hadoop_ver} native libraries installed in /opt/hadoop/lib/native
 
 # Get Spark from US Apache mirror.
+#    curl http://www.apache.org/dist/spark/spark-${spark_ver}/spark-${spark_ver}-bin-hadoop2.6.tgz | \
 RUN mkdir -p /opt && \
     cd /opt && \
-    curl http://www.apache.org/dist/spark/spark-${spark_ver}/spark-${spark_ver}-bin-hadoop2.6.tgz | \
+    curl http://archive.apache.org/dist/spark/spark-${spark_ver}/spark-${spark_ver}-bin-hadoop2.6.tgz | \
         tar -zx && \
     ln -s spark-${spark_ver}-bin-hadoop2.6 spark && \
     echo Spark ${spark_ver} installed in /opt
@@ -88,4 +89,25 @@ RUN mkdir -p /seldon-data/seldon-models
 VOLUME /seldon-data
 
 COPY client-dashboard.json $SELDON_HOME
+
+#
+# Add Maven
+#
+
+ARG MAVEN_VERSION=3.3.9
+ARG USER_HOME_DIR="/home/seldon"
+
+RUN mkdir -p /usr/share/maven /usr/share/maven/ref \
+  && curl -fsSL http://apache.osuosl.org/maven/maven-3/$MAVEN_VERSION/binaries/apache-maven-$MAVEN_VERSION-bin.tar.gz \
+    | tar -xzC /usr/share/maven --strip-components=1 \
+  && ln -s /usr/share/maven/bin/mvn /usr/bin/mvn
+
+ENV MAVEN_HOME /usr/share/maven
+ENV MAVEN_CONFIG "$USER_HOME_DIR/.m2"
+
+#COPY settings-docker.xml /usr/share/maven/ref/
+
+VOLUME "$USER_HOME_DIR/.m2"
+
+ADD grpc-util ${SELDON_HOME}/grpc-util
 

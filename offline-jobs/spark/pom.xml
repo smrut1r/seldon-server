@@ -4,7 +4,7 @@
     <parent>
         <groupId>io.seldon</groupId>
         <artifactId>seldon-parent</artifactId>
-        <version>1.3.11</version>
+        <version>1.4.5</version>
         <relativePath>../../pom.xml</relativePath>
     </parent>
   
@@ -114,40 +114,12 @@
                     </execution>
                 </executions>
             </plugin>
-
-            <!--<plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-reactor-plugin</artifactId>
-                <version>1.0</version>
-                <executions>
-                    <execution>
-                        <id>inject</id>
-                        <phase>initialize</phase>
-                        <goals>
-                            <goal>make-dependents</goal>
-                        </goals>
-
-                        <configuration>
-                            <artifactList>seldon-server</artifactList>
-                            <folderList>../../server</folderList>
-                            <modules>
-                                <module>
-                                    <artifactId>seldon-server</artifactId>
-                                    <groupId>io.seldon</groupId>
-                                    <version>1.3.8</version>
-                                </module>
-                            </modules>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>-->
         </plugins>
        
   </build>
   
   
   <dependencies>
-
        <dependency>
 			<groupId>junit</groupId>
 			<artifactId>junit</artifactId>

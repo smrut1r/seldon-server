@@ -21,29 +21,32 @@
 */
 package io.seldon.api.resource.service.business;
 
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
+
+import org.apache.log4j.Logger;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
+
+import com.fasterxml.jackson.core.JsonFactory;
+import com.fasterxml.jackson.core.JsonParseException;
+import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+
 import io.seldon.api.APIException;
 import io.seldon.api.Constants;
 import io.seldon.api.logging.EventLogger;
+import io.seldon.api.logging.PredictLogger;
 import io.seldon.api.resource.ConsumerBean;
 import io.seldon.api.resource.ErrorBean;
 import io.seldon.api.resource.EventBean;
 import io.seldon.api.resource.ResourceBean;
 import io.seldon.api.service.ApiLoggerServer;
 import io.seldon.prediction.PredictionService;
-
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
-
-import org.apache.log4j.Logger;
-import org.codehaus.jackson.JsonFactory;
-import org.codehaus.jackson.JsonNode;
-import org.codehaus.jackson.JsonParseException;
-import org.codehaus.jackson.JsonParser;
-import org.codehaus.jackson.map.ObjectMapper;
-import org.codehaus.jackson.node.ObjectNode;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
+import io.seldon.prediction.PredictionServiceResult;
 
 @Component
 public class PredictionBusinessServiceImpl implements PredictionBusinessService {
@@ -53,9 +56,15 @@ public class PredictionBusinessServiceImpl implements PredictionBusinessService 
 	private static final String CLIENT_KEY = "client";
 	private static final String TIMESTAMP_KEY = "timestamp";
 	public static final String PUID_KEY = "puid";
+	public static final String REQUEST_CUSTOM_DATA_FIELD = "data";
+	public static final String REPLY_CUSTOM_DATA_FIELD = "custom";
+
 	
 	@Autowired
 	PredictionService predictionService;
+	
+	@Autowired
+	PredictLogger predictLogger;
 	
 	private boolean allowedKey(String key)
 	{
@@ -76,10 +85,10 @@ public class PredictionBusinessServiceImpl implements PredictionBusinessService 
 	private JsonNode getValidatedJson(ConsumerBean consumer,String jsonRaw,boolean addExtraFeatures) throws JsonParseException, IOException
 	{
 		ObjectMapper mapper = new ObjectMapper();
-	    JsonFactory factory = mapper.getJsonFactory();
-	    JsonParser parser = factory.createJsonParser(jsonRaw);
+	    JsonFactory factory = mapper.getFactory();
+	    JsonParser parser = factory.createParser(jsonRaw);
 	    JsonNode actualObj = mapper.readTree(parser);
-	    if (addExtraFeatures)
+	    if (addExtraFeatures) // only for events not at predict time
 	    {
 	    	((ObjectNode) actualObj).put(CLIENT_KEY,consumer.getShort_name());
 	    	if (actualObj.get(TIMESTAMP_KEY) == null)
@@ -178,30 +187,30 @@ public class PredictionBusinessServiceImpl implements PredictionBusinessService 
 	}
 
 	@Override
-	public ResourceBean predict(ConsumerBean consumer, String puid, String jsonRaw) {
-		ResourceBean responseBean;
+	public PredictionServiceResult predict(ConsumerBean consumer, String puid, String jsonRaw) {
+		
+		
 		try
 		{
 			logger.info("Json raw "+jsonRaw);
 			JsonNode jsonNode = getValidatedJson(consumer, jsonRaw, false); // used to check valid json but we don't use result
-			responseBean = predictionService.predict(consumer.getShort_name(), puid, jsonNode);
+			PredictionServiceResult res = predictionService.predict(consumer.getShort_name(), puid, jsonNode);
+			predictLogger.log(consumer.getShort_name(), jsonNode, res);
+			return res;
 	    } 
 		catch (IOException e) 
 		{
 			ApiLoggerServer.log(this, e);
-			APIException apiEx = new APIException(APIException.INVALID_JSON);
-			responseBean = new ErrorBean(apiEx);
+			return new PredictionServiceResult();
 		}
 		catch (APIException e)
 		{
-			ApiLoggerServer.log(this, e);
-			responseBean = new ErrorBean(e);
+			return new PredictionServiceResult();
 		}
-	    return responseBean;
 	}
 
 	@Override
-	public ResourceBean predict(ConsumerBean consumerBean, Map<String, String[]> parameters) {
+	public PredictionServiceResult predict(ConsumerBean consumerBean, Map<String, String[]> parameters) {
 		String puid = null;
 		if (parameters.containsKey(PUID_KEY))
 			puid = parameters.get(PUID_KEY)[0];
@@ -231,10 +240,16 @@ public class PredictionBusinessServiceImpl implements PredictionBusinessService 
 			try {
 				String jsonRaw = mapper.writeValueAsString(keyVals);
 				return predict(consumerBean, puid, jsonRaw);
-			} catch (IOException e) {
+			} catch (IOException e) 
+			{
 				ApiLoggerServer.log(this, e);
+				/*
 				APIException apiEx = new APIException(APIException.INVALID_JSON);
-				return new ErrorBean(apiEx);
+				ResourceBean responseBean = new ErrorBean(apiEx);
+				JsonNode response = mapper.valueToTree(responseBean);
+				return response;
+				*/
+				return new PredictionServiceResult();
 			}
 		}
 	}

@@ -43,6 +43,7 @@ import io.seldon.util.CollectionTools;
 import java.util.*;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -89,7 +90,7 @@ public class RecommendationPeer {
     }
 
 
-	public RecommendationResult getRecommendations(long user, String client, String clientUserId, Integer type,
+	public ImmutablePair<RecommendationResult, RecResultContext> getRecommendations(long user, String client, String clientUserId, Integer type,
                                                    Set<Integer> dimensions, int numRecommendationsAsked,
                                                    String lastRecListUUID,
                                                    Long currentItemId, String referrer, String recTag, List<String> algorithmOverride,Set<Long> scoreItems) {
@@ -198,29 +199,33 @@ public class RecommendationPeer {
 //				default:
 //					break;
 //			}
-			Map<Long,Double> recommendationsFinal = CollectionTools.sortMapAndLimit(recommenderScores, numRecommendations, true);
-			if (logger.isDebugEnabled())
+            List<Long> recommendationsFinal = CollectionTools.sortMapAndLimitToList(recommenderScores, numRecommendations, true);
+            if (logger.isDebugEnabled())
 				logger.debug("recommendationsFinal size was " +recommendationsFinal.size());
-            return createFinalRecResult(numRecommendationsAsked, client, clientUserId, dimensions,
+            final RecommendationResult recommendationResult = createFinalRecResult(numRecommendationsAsked, client, clientUserId, dimensions,
                     lastRecListUUID, recommendationsFinal, combinedResults.algKey,
                     currentItemId, numRecentActions, diversityLevel,strategy,recTag);
+            final ImmutablePair<RecommendationResult, RecResultContext> retVal = new ImmutablePair<>(recommendationResult, combinedResults);
+            return retVal;
 		}
 		else
 		{
 			logger.warn("Returning no recommendations for user with client id "+clientUserId);
-			return createFinalRecResult(numRecommendationsAsked,client, clientUserId,
-					dimensions, lastRecListUUID, new LinkedHashMap<Long, Double>(),"",currentItemId,
+            final RecommendationResult recommendationResult = createFinalRecResult(numRecommendationsAsked,client, clientUserId,
+					dimensions, lastRecListUUID, new ArrayList<Long>(),"",currentItemId,
 					numRecentActions, diversityLevel,strategy, recTag);
+            final ImmutablePair<RecommendationResult, RecResultContext> retVal = new ImmutablePair<>(recommendationResult, combinedResults);
+            return retVal;
 		}
 	}
 
 
     private RecommendationResult createFinalRecResult(int numRecommendationsAsked, String client, String clientUserId,
-													  Set<Integer> dimensions,String currentRecUUID,Map<Long, Double> recs,String algKey,
+													  Set<Integer> dimensions,String currentRecUUID,List<Long> recs,String algKey,
 													  Long currentItemId,int numRecentActions, Double diversityLevel,
                                                       ClientStrategy strat, String recTag)
     {
-		Map<Long, Double> recsFinal;
+        List<Long> recsFinal;
     	if (diversityLevel > 1.0)
     		recsFinal = RecommendationUtils.getDiverseRecommendations(numRecommendationsAsked, recs,client,clientUserId,dimensions);
     	else
@@ -230,8 +235,8 @@ public class RecommendationPeer {
     	String uuid=RecommendationUtils.cacheRecommendationsAndCreateNewUUID(client, clientUserId, dimensions,
                 currentRecUUID, recsFinal, algKey,currentItemId,numRecentActions, strat, recTag);
     	List<Recommendation> recBeans = new ArrayList<>();
-    	for(Map.Entry<Long, Double> entry: recsFinal.entrySet())
-    		recBeans.add(new Recommendation(entry.getKey(), 0, entry.getValue()));
+    	for(Long itemId : recsFinal)
+    		recBeans.add(new Recommendation(itemId, 0, 0.0));
     	return new RecommendationResult(recBeans, uuid, strat.getName(clientUserId,recTag));
     }
 
@@ -240,6 +245,7 @@ public class RecommendationPeer {
         public static final RecResultContext EMPTY = new RecResultContext(new ItemRecommendationResultSet("UNKNOWN"), "UNKNOWN");
         public final ItemRecommendationResultSet resultSet;
         public final String algKey;
+        public Map<Long,String> item_recommender_lookup = null;
 
         public RecResultContext(ItemRecommendationResultSet resultSet, String algKey) {
             this.resultSet = resultSet;
