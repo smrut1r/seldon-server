@@ -179,7 +179,7 @@
       <dependency>
           <groupId>io.seldon</groupId>
           <artifactId>seldon-server</artifactId>
-          <version>1.3.8</version>
+          <version>1.3.11</version>
           <classifier>classes</classifier>
           <type>jar</type>
           <exclusions>

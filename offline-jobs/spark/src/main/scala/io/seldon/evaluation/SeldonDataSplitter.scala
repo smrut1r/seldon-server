@@ -47,11 +47,6 @@ import javax.servlet.ServletContextEvent
 
 import akka.actor.{ActorRef, ActorSystem, Inbox, Props}
 import com.typesafe.config.ConfigFactory
-import io.seldon.api.state.ZkCuratorHandler
-import io.seldon.api.state.zk.ZkClientConfigHandler
-import io.seldon.db.jdo.JDOFactory
-import io.seldon.memcache.SecurityHashPeer
-import io.seldon.recommendation.{RecommendationPeer, RecommendationResult}
 import io.seldon.spark.SparkUtils
 import io.seldon.spark.mllib.{MfConfig, MfModelCreation}
 import org.apache.mahout.cf.taste.impl.recommender.GenericRecommendedItem
