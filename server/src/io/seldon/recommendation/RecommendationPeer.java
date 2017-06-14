@@ -199,8 +199,8 @@ public class RecommendationPeer {
 //				default:
 //					break;
 //			}
-            List<Long> recommendationsFinal = CollectionTools.sortMapAndLimitToList(recommenderScores, numRecommendations, true);
-            if (logger.isDebugEnabled())
+			Map<Long,Double> recommendationsFinal = CollectionTools.sortMapAndLimit(recommenderScores, numRecommendations, true);
+			if (logger.isDebugEnabled())
 				logger.debug("recommendationsFinal size was " +recommendationsFinal.size());
             final RecommendationResult recommendationResult = createFinalRecResult(numRecommendationsAsked, client, clientUserId, dimensions,
                     lastRecListUUID, recommendationsFinal, combinedResults.algKey,
@@ -212,7 +212,7 @@ public class RecommendationPeer {
 		{
 			logger.warn("Returning no recommendations for user with client id "+clientUserId);
             final RecommendationResult recommendationResult = createFinalRecResult(numRecommendationsAsked,client, clientUserId,
-					dimensions, lastRecListUUID, new ArrayList<Long>(),"",currentItemId,
+					dimensions, lastRecListUUID, new LinkedHashMap<Long, Double>(),"",currentItemId,
 					numRecentActions, diversityLevel,strategy, recTag);
             final ImmutablePair<RecommendationResult, RecResultContext> retVal = new ImmutablePair<>(recommendationResult, combinedResults);
             return retVal;
@@ -221,11 +221,11 @@ public class RecommendationPeer {
 
 
     private RecommendationResult createFinalRecResult(int numRecommendationsAsked, String client, String clientUserId,
-													  Set<Integer> dimensions,String currentRecUUID,List<Long> recs,String algKey,
+													  Set<Integer> dimensions,String currentRecUUID, Map<Long, Double> recs,String algKey,
 													  Long currentItemId,int numRecentActions, Double diversityLevel,
                                                       ClientStrategy strat, String recTag)
     {
-        List<Long> recsFinal;
+		Map<Long, Double> recsFinal;
     	if (diversityLevel > 1.0)
     		recsFinal = RecommendationUtils.getDiverseRecommendations(numRecommendationsAsked, recs,client,clientUserId,dimensions);
     	else
@@ -235,8 +235,8 @@ public class RecommendationPeer {
     	String uuid=RecommendationUtils.cacheRecommendationsAndCreateNewUUID(client, clientUserId, dimensions,
                 currentRecUUID, recsFinal, algKey,currentItemId,numRecentActions, strat, recTag);
     	List<Recommendation> recBeans = new ArrayList<>();
-    	for(Long itemId : recsFinal)
-    		recBeans.add(new Recommendation(itemId, 0, 0.0));
+		for(Map.Entry<Long, Double> entry: recsFinal.entrySet())
+    		recBeans.add(new Recommendation(entry.getKey(), 0, 0.0));
     	return new RecommendationResult(recBeans, uuid, strat.getName(clientUserId,recTag));
     }
 
