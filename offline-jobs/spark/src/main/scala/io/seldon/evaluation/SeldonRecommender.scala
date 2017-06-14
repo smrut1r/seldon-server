@@ -304,7 +304,7 @@ class Recommender extends Actor {
   def recommend(x: Any): Any = x match {
     case RecRequest(Env(peer, client, path), algos, user, scoreItems, count) => {
       try {
-        val recResults = peer.getRecommendations(user, client, null, 0, null, count, "1L", 0L, "", "", algos, scoreItems)
+        val recResults = peer.getRecommendations(user, client, null, 0, null, count, "1L", 0L, "", "", algos, scoreItems).getLeft
         val items = recResults.getRecs().asScala.filter(x => !Float.isNaN(x.getPrediction.toFloat)).map(x => new GenericRecommendedItem(x.getContent, (SCALE * x.getPrediction).toFloat)).asJava
         //sender ! items
         val fileName = algos.toArray().mkString("+") + ".csv"
