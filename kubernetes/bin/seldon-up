@@ -48,13 +48,14 @@ function start_core_services {
         fi
     done
     while true; do
-        zookeeper_mode=$(check_zookeeper)
-        if [[ "$zookeeper_mode" == "leader" || "$zookeeper_mode" == "follower" ]]; then
-            break
-        else
-            echo "Waiting for zookeeper to be ready as status check returned $zookeeper_mode"
-            sleep 1
-        fi
+#        zookeeper_mode= $(check_zookeeper)
+#        if [[ "$zookeeper_mode" == "leader" || "$zookeeper_mode" == "follower" ]]; then
+#            break
+#        else
+#            echo "Waiting for zookeeper to be ready as status check returned $zookeeper_mode"
+#            sleep 1
+#        fi
+        break
     done
 
     kubectl create -f ${STARTUP_DIR}/../conf/kafka.json
@@ -165,7 +166,7 @@ function seldon_up {
 
     start_api_server
 
-    setup_influxdb
+    #setup_influxdb
 
     start_analytics
 }

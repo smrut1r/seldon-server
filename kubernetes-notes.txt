@@ -1,0 +1,40 @@
+#seldon
+cd /seldon-server/kubernetes/conf
+make clean conf SELDON_SERVICE_TYPE=LoadBalance
+
+#List Services:
+kubectl cluster-info
+#Check config/pwd: 
+kubectl config view
+
+kubectl config set-cluster local --server=http://localhost:8080
+kubectl config set-context local --cluster=local
+kubectl config use-context local
+
+kubectl config current-context
+kubectl config set-cluster local --server=http://localhost:8080
+kubectl config set-context local --cluster=local
+kubectl config use-context local #aws_kubernetes
+kubectl get nodes
+kubectl run ttnd-nginx --image=nginx
+kubectl get pods
+
+export KUBERNETES_PROVIDER=aws
+./kubernetes/cluster/kube-down.sh
+./kubernetes/cluster/kube-up.sh
+
+#aws login password: cat ~/.kube/config
+
+kubectl get services
+kubectl get deployments
+
+kubectl logs ahalife
+
+kubectl exec -ti seldon-control -- /bin/bash
+
+docker images
+
+kubectl create -f seldon-server/kubernetes/conf/server.json
+
+
+

@@ -1,0 +1,369 @@
+cd ~/seldon-server/docker/examples/personalization/data
+make
+kubectl apply -f kubernetes.json
+
+#CloudSQL
+password: NF0hI9yEvPmPOtny
+
+cd server
+mvn clean install
+
+seldon-cli client --action setup --db-name ClientDB --client-name ahalife
+seldon-cli keys --client-name ahalife
+#seldon-cli keys --action update --client-name ahalife --scope js --key "P7HXTMLB151SBGTNVI3G"
+#seldon-cli keys --action update --client-name ahalife --scope all --key "ZEFH7RXHR5UE9TC3FR2D" --secret "Y7R93F1I76R5WHRH2JVZ"
+
+kubectl get pods
+#docker ps |grep seldon-server
+docker run -it seldonio/seldon-server:1.4.5 /bin/bash
+#copy the instanceid from command prompt
+docker cp /home/smrutiranjans/seldon-server/server/target/seldon-server-1.4.5.war f0bcac419ff5:/home/seldon
+cd ROOT
+cp ../seldon-server-1.4.5.war ROOT.war
+exit
+docker commit f0bcac419ff5 seldonio/seldon-server:1.4.5
+kubectl exec -ti seldon-server-3550419173-rfctg -- /bin/bash
+cd /home/seldon
+
+
+
+seldon-cli attr --action edit --client-name ahalife
+#paste from attr.json
+seldon-cli attr --action apply --client-name ahalife
+seldon-cli attr --action dimensions --client-name ahalife
+seldon-cli import --action items --client-name ahalife --file-path items.csv
+seldon-cli import --action users --client-name ahalife --file-path users.csv
+seldon-cli import --action actions --client-name ahalife --file-path actions.csv
+
+seldon-cli api --client-name ahalife --endpoint /js/recommendations --item 50 --limit 4
+
+http://10.0.0.216/token?consumer_key=FKWJM5I80TRN2WVM1WSO&consumer_secret=IZ84SQ2RPWRKZP707Y0T
+http://10.0.0.216/users/175343510/recommendations?limit=20&oauth_token=umlpfj6lhfd9rrtppumda3d2et
+http://10.0.0.222/js/recommendations?consumer_key=07T9BSB4G29TH52NVC23&user=175343510&limit=20&jsonpCallback=p
+
+#action POST
+http://10.0.0.222/js/action/new?consumer_key=07T9BSB4G29TH52NVC23&user=175343510&item=149000040598&type=1&jsonpCallback=p
+http://10.0.0.222/actions?oauth_token=6f4im9m3oaehm40et19spsnn97
+{
+"user" : "175343510",
+"item" : "149000040598",
+"type" : 1
+}
+
+#/seldon-data/actions.json
+{"client": "ahalife", "client_itemid": "181705083", "client_userid": "149000012544", "itemid": 149000012544, "rectag": "default", "timestamp_utc": "2016-03-04T00:00:02Z", "type": 1, "userid": 1, "value": 1.0}
+
+#/home/seldon/logs/actions.log in seldon-server
+{"client_itemid":"149000040598","itemid":"0","client_userid":"175343510","extra_data":{},"client":"ahalife","rectag":"default","type":"1","userid":"0","value":"1.0"}
+
+luigi --module seldon.luigi.spark SeldonMatrixFactorization --local-schedule --client ahalife --startDay 1
+luigi --module seldon.luigi.spark SeldonItemSimilarity --local-schedule --client ahalife --startDay 1
+
+
+seldon-cli rec_alg --action commit --client-name ahalife
+seldon-cli client --action zk_push
+seldon-cli rec_alg  --action delete --client-name ahalife --recommender-name recentMfRecommender
+seldon-cli rec_alg --action show --client-name ahalife
+seldon-cli api --client-name ahalife --endpoint /js/recommendations
+
+seldon-cli rec_alg  --action delete --client-name ahalife --recommender-name itemSimilarityRecommender
+seldon-cli rec_alg  --action add --client-name ahalife --recommender itemSimilarityRecommender
+
+matrix-factorization:
+    train: MfModelCreation
+    serve: mfRecommender, recentMfRecommender
+    model: /matrix-factorization/1/productFeatures.txt.gz, userFeatures.txt.gz
+luigi --module seldon.luigi.spark SeldonMatrixFactorization --local-schedule --client ahalife --startDay 1
+seldon-cli model --action add --client-name ahalife --model-name matrix-factorization
+seldon-cli model --action train --client-name ahalife --model-name matrix-factorization
+seldon-cli rec_alg  --action add --client-name ahalife --recommender-name recentMfRecommender
+
+mf-usercluster:
+    train: MfUserClusters
+    serve: mfUserClustersRecommender
+    model: /mfclusters/userclusters.csv, recommendations.csv
+seldon-cli model --action add --client-name ahalife --model-name mfclusters
+seldon-cli model --action train --client-name ahalife --model-name mfclusters
+seldon-cli rec_alg  --action add --client-name ahalife --recommender-name mfclusters
+
+similar-items:
+    train: SimilarItems
+    serve: itemSimilarityRecommender
+    model: DB(item_similarity), +path:/item-similarity/1/
+luigi --module seldon.luigi.spark SeldonItemSimilarity --local-schedule --client ahalife --startDay 1 --ItemSimilaritySparkJob-sample 1.0 --ItemSimilaritySparkJob-dimsumThreshold 0.5 --ItemSimilaritySparkJob-limit 100
+seldon-cli model --action add --client-name ahalife --model-name similar-items
+seldon-cli model --action train --client-name ahalife --model-name similar-items
+---
+SELDON_SPARK_HOME=~/seldon-server/offline-jobs/spark
+CLIENT=ahalife
+DB_HOST=10.0.0.214
+DB_USER=root
+DB_PASS=mypass
+DAY=1
+cat /seldon-data/seldon-models/${CLIENT}/item-similarity/${DAY}/part* | ${SELDON_SPARK_HOME}/scripts/item-similarity/create-sql.py > upload.sql
+mysql -h${DB_HOST} -u${DB_USER} -p${DB_PASS} ${CLIENT} < upload.sql
+---
+seldon-cli rec_alg  --action add --client-name ahalife --recommender-name itemSimilarityRecommender
+
+word2vec:
+    train: SessionItems, Word2VecJob
+    serve: semanticVectorsRecommender, word2vecRecommender
+    model: /sessionitems/1/part-00000, part-00001, /word2vec/docvectors.txt, termvectors.txt
+seldon-cli model --action add --client-name ahalife --model-name sessionitems
+seldon-cli model --action add --client-name ahalife --model-name word2vec
+sudo rm -rf /seldon-data/seldon-models/ahalife/sessionitems/1/
+seldon-cli model --action train --client-name ahalife --model-name sessionitems
+seldon-cli model --action train --client-name ahalife --model-name word2vec
+seldon-cli rec_alg  --action add --client-name ahalife --recommender-name word2vecRecommender
+
+semvec(tag-sim):
+    train:
+    serve: semanticVectorsRecommender
+seldon-cli model --action add --client-name ahalife --model-name semvec
+seldon-cli model --action train --client-name ahalife --model-name semvec
+seldon-cli rec_alg  --action add --client-name ahalife --recommender-name semanticVectorsRecommender
+
+tagaffinity:
+    train: UserTagAffinity
+    serve: userTagAffinityRecommender
+    model: +path:/tagaffinity/part-00000/tags.csv
+seldon-cli model --action add --client-name ahalife --model-name tagaffinity
+seldon-cli model --action train --client-name ahalife --model-name tagaffinity
+seldon-cli rec_alg  --action add --client-name ahalife --recommender-name userTagAffinityRecommender
+
+mostpopular:
+    train: MostPopularByDimJob, MostPopularJob
+    serve: mostPopularRecommender, mostPopularInSessionRecommender, mostPopularIncluder
+    model: /mostpopulardim/1/
+seldon-cli model --action add --client-name ahalife --model-name mostpopular
+seldon-cli model --action train --client-name ahalife --model-name mostpopular
+seldon-cli rec_alg  --action add --client-name ahalife --recommender-name mostPopularRecommender
+
+topic-lda:
+    train: TopicModel
+    serve: topicModelRecommender, recentTopicModelRecommender
+    model: /topics/1/users.csv, topics.csv
+seldon-cli model --action add --client-name ahalife --model-name topic-lda
+seldon-cli model --action train --client-name ahalife --model-name topic-lda
+seldon-cli rec_alg  --action add --client-name ahalife --recommender-name recentTopicModelRecommender
+#update: /seldon-data/conf/zkroot/config/topics/_data_ > aghalife
+
+user-cluster:
+    train: ClusterUsersByDimension
+    serve:
+    model:
+seldon-cli model --action add --client-name ahalife --model-name cluster-by-dimension
+sudo rm -rf /seldon-data/seldon-models/ahalife/cluster
+seldon-cli model --action train --client-name ahalife --model-name cluster-by-dimension
+seldon-cli rec_alg --action add --client-name ahalife --recommender-name dynamicClusterCountsRecommender
+seldon-cli rec_alg  --action add --client-name ahalife --recommender-name globalClusterCountsRecommender
+seldon-cli rec_alg --action add  --client-name ahalife --recommender-name itemCategoryClusterCountsRecommender
+seldon-cli rec_alg --action add  --client-name ahalife --recommender-name itemClusterCountsRecommender
+
+basketanalysis:
+    train: BasketAnalysis, FPGrowthJob
+    serve: assocRuleRecommender
+    model: +path:/basketanalysis/1/
+
+seldon-cli model --action add --client-name ahalife --model-name basketanalysis
+seldon-cli model --action add --client-name ahalife --model-name fpgrowth
+sudo rm -rf /seldon-data/seldon-models/ahalife/basketanalysis/1
+seldon-cli model --action train --client-name ahalife --model-name basketanalysis
+sudo rm -rf /seldon-data/seldon-models/ahalife/fpgrowth/1
+seldon-cli model --action train --client-name ahalife --model-name fpgrowth
+seldon-cli rec_alg  --action add --client-name ahalife --recommender-name assocRuleRecommender
+
+external:
+seldon-cli rec_alg  --action add --client-name ahalife --recommender-name externalItemRecommendationAlgorithm
+cat <<EOF | seldon-cli rec_alg --action create --client-name ahalife -f -
+{
+    "defaultStrategy": {
+        "algorithms": [
+            {
+                "config": [
+                    {
+                        "name": "io.seldon.algorithm.inclusion.itemsperincluder",
+                        "value": 1000
+                    },
+                    {
+                        "name": "io.seldon.algorithm.external.url",
+                        "value": "http://localhost:8000/queries.json"
+                    },
+                    {
+                        "name": "io.seldon.algorithm.external.name",
+                        "value": "pio"
+                    }
+                ],
+                "filters": [],
+                "includers": [],
+                "name": "externalItemRecommendationAlgorithm"
+            }
+        ],
+        "combiner": "firstSuccessfulCombiner"
+    },
+    "recTagToStrategy": {}
+}
+EOF
+
+Om sudham sudham maha-jogini maha-nidraye swahh
+kusnaya basudebaya, haraye paramtmae, .....
+
+Demo:
+2 frameworks
+pio: good quick start, difficult to scale
+     scala, java
+     hbase, elastic-search
+sio: decoupled, difficult to start, easy to scale
+     java, scala, python,
+     mysql, spark, zookeeper, memcached, influxdb/grafana, td-agent
+Using Seldon.io as a framework:
+    1. Support multiple algorithm in parallel.
+    2. Combine results of multiple algorithms(RankSum, ScoreOrder)
+    3. Diversify the results
+    4. Exclude/Filter(always): currentItemFilter, recentImpressionsFilter, ignoredRecsFilter(previous recommended/purchased/expired)
+    5. Include: RecentItemsIncluder, MostPopularIncluder, ExplicitItemsIncluder(promoted)
+    6. Change algo at run-time
+    7. A/B testing
+    8. kubernetes/docker
+
+Working:-
+1. Collected product, user, actions(sales, carts and view) data.
+2. filtered, merged and formatted/prepared data in csv format.
+3. imported data using cli tool
+4. trained 4 models
+5. served 4 models
+
+p@k: Precision at k
+map: Mean Average Precision
+ndcg: Normalized Discounted Cumulative Gain
+Links:
+    http://docs.seldon.io/content-recommendation-models.html
+Backfill: recentItemsRecommender
+Each user represented by a item vector
+Each Item represented by a user vector
+1. Matrix Factoriztion/Compression(ALS: Alternating Least Squares)
+Desc:
+    Best for e-commerce sites lower churn sites
+    find a small set of latent user and item factors that explain the user-item interaction data
+    Fold-in new users and items until next batch update
+    compression, SVD, fix 1 predict other
+    1. train: get lower diamentional user & item factors
+    2. filter: Weighted + Normalizedlearn by type
+    3. score: multiply each item vectors to given user vectore and rank
+    4. eval: alpha, lambda, rank, iterations
+Pros:
+    1. Better result than user-user CF
+Cons:
+    1. Provided popular items
+
+2. Item Activity Corelations(DIMSUM: Dimension Independent Matrix Square using MapReduce)
+Desc:
+    Built for static slowly changing historical inventory
+    find pairs of items that have consistently been viewed together
+    all-pairs similarity/similarity join
+    cosine-similarity, threshhold
+    focus only those pairs that are above the similarity threshold
+    sampling columns => many non-zeros (lower probability),
+    provably accurately estimate cosine similarities <= many non-zeros have more trials to be included
+    dimsum_threshold: >= 0 and < 1.0. Higher the setting the greater the efficiency but less accurate the result
+    algo: filter items, users,
+            create list of sparce vector of items for each user
+            crare RowMatrix and call columnSimilarities
+    1. train: find items that share similar user activity
+    2. filter: item by type, min/max interaction per user
+             : user by min interaction of items
+    3. math: sparce user vectors => RowMatrix.columnSimilarities(dimsumThreshold)
+             store n item similarity in db
+    4. score: select from db order by score
+    5. eval: limit, minItemsPerUser,minUsersPerItem,maxUsersPerItem, dimsumThreshold, sample
+
+3. Context Similarity(word2vec/item2vec/like2vec)
+Desc:
+    text/doc => session action data(play lists) for user
+    item (e.g. movie) as a “word” and the “sentences” are the ordered actions
+    constructs a vocabulary, learns vector representation of words in the vocabulary
+    words that occur in similar contexts to have similar embeddings
+    skip-gram(use current word to predict the surrounding window of context words) model and hierarchical softmax
+    Log-Likelyhood-Ratio(Not Covariance)
+   output a set of feature vectors for words
+    1. train: session-item/user as documents
+              represent each item as n diamentional vector
+    2. filter: minWordCount/minimum-frequency to consider a word in vocabulary
+    3. score: vector1.measureOverlap(vector2)
+    4. eval: (maxIntraSessionGapSecs, minActionsPerUser, maxActionsPerUser), minWordCount, vectorSize
+
+4. Content/Tag Similarity(Semantic Vectors)
+    Built for services with rich metadata and high sparsity
+    find items with similar meta data(e.g. tags)
+
+5. Topic Models(common tags/categories, common keywords in name and description)
+    Built for sites needing long tail recommendation
+    Discover abstract topics(hidden semantic structures/clusters of similar word) that occur in a collection of documents
+    create topics.csv: 50 clusters of n tags and store affinity of each tag to each cluster
+    create users.csv: store affinity of each user to each tag
+    1. train:
+        extract tags of items join with user-actions
+        create vocabulary of <tag, count> => <index, count> => sparce-vector(corpus)
+    2. score: userTopicWeight * itemTopicWeight(tags)
+    5. eval: minActionsPerUser, numTopics, maxIterations
+
+6. User Clustering
+    Improve relevance of recommendations in high churn media services.
+    Stream processing for adding short-term dynamics
+    Decay counts to provide activity dynamics
+    Taxonomy on category, price range, brand, visit referrer.
+    2. score: combining counts for content based on cluster membership of user.
+7. Basket analysis/Association Rules(FP Growth)
+    Suggested the next best item given current set of items
+
+Suggested
+1. Predict similar users(from friend graph), and show their suggested items
+
+
+
+#available offline
+#cluster
+cluster-by-dimention: +path:/cluster/1/
+tagcluster: +path:/tagcluster/1/tags.csv
+
+
+engagement:
+    train:
+    serve:
+    model: /baseline.csv, normal.csv, diffs.csv
+sessiontags:
+    train:
+    serve:
+    model: /sessiontags/1/
+
+vwfeatures
+
+#available online #notraining
+
+assocRuleRecommender
+dynamicClusterCountsRecommender
+mostPopularRecommender
+dynamicClusterCountsRecommender
+category, price range, brand, visit referrer
+recentMfRecommender
+globalClusterCountsRecommender
+itemCategoryClusterCountsRecommender
+itemClusterCountsRecommender
+mfRecommender
+itemSimilarityRecommender
+semanticVectorsRecommender
+userTagAffinityRecommender
+topicModelRecommender
+externalItemRecommendationAlgorithm
+
+1 * M3 General Purpose Medium	m3.medium	3.75 GB	3 units	1 vCPUs	4.0 GB SSD	64-bit	Moderate	N/A	No	$0.067 hourly
+
+To debug:
+1. Spark:
+    a. VM Options: -Dspark.master=local[2]
+    b. Program arguments: --client ahalife --zookeeper 10.0.0.129
+    c. seldon-spark pom.xml: <spark.scope>compile</spark.scope>
+2. Server:
+    a. Remote Connection Setting: Host (10.0.0.165), Port(80)
+    b. Startup/Connections >> Debug: Port: 8000
+    c. kubernetes/bin/seldon-up.sh >> dev (kubectl create -f ${STARTUP_DIR}/../conf/dev/server.json)
