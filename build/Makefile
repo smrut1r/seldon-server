@@ -20,12 +20,15 @@ ALL_LIST=\
 	seldonio_iago \
 	seldonio_influxdb \
 	seldonio_zookeeper_k8s \
+	seldonio_kafka_k8s \
 	seldonio_tdagent_server \
 	seldonio_tdagent_node \
 	seldonio_iris_vw \
 	seldonio_iris_xgboost \
+	seldonio_iris_scikit \
 	seldonio_finefoods_xgboost \
-	ahalife
+	seldonio_stream_itemsim \
+	seldonio_examples_tensorflow_deep_mnist
 
 
 NO_PUBLISH_LIST=\
@@ -69,14 +72,20 @@ build_seldonio_tdagent_server: build_versions_generated
 	@./dobuild seldonio_tdagent_server
 build_seldonio_zookeeper_k8s: build_versions_generated
 	@./dobuild seldonio_zookeeper_k8s
+build_seldonio_kafka_k8s: build_versions_generated
+	@./dobuild seldonio_kafka_k8s
 build_seldonio_iris_vw: build_versions_generated
 	@./dobuild seldonio_iris_vw
 build_seldonio_iris_xgboost: build_versions_generated
 	@./dobuild seldonio_iris_xgboost
+build_seldonio_iris_scikit: build_versions_generated
+	@./dobuild seldonio_iris_scikit
 build_seldonio_finefoods_xgboost: build_versions_generated
 	@./dobuild seldonio_finefoods_xgboost
-build_ahalife: build_versions_generated
-	@./dobuild ahalife
+build_seldonio_stream_itemsim: build_versions_generated
+	@./dobuild seldonio_stream_itemsim
+build_seldonio_examples_tensorflow_deep_mnist: build_versions_generated
+	@./dobuild seldonio_examples_tensorflow_deep_mnist
 
 #publish
 publish_seldonio_pyseldon: build_versions_generated
@@ -107,6 +116,8 @@ publish_seldonio_influxdb: build_versions_generated
 	@./dopublish seldonio_influxdb
 publish_seldonio_zookeeper_k8s: build_versions_generated
 	@./dopublish seldonio_zookeeper_k8s
+publish_seldonio_kafka_k8s: build_versions_generated
+	@./dopublish seldonio_kafka_k8s
 publish_seldonio_tdagent_server: build_versions_generated
 	@./dopublish seldonio_tdagent_server
 publish_seldonio_tdagent_node: build_versions_generated
@@ -115,8 +126,14 @@ publish_seldonio_iris_vw: build_versions_generated
 	@./dopublish seldonio_iris_vw
 publish_seldonio_iris_xgboost: build_versions_generated
 	@./dopublish seldonio_iris_xgboost
+publish_seldonio_iris_scikit: build_versions_generated
+	@./dopublish seldonio_iris_scikit
 publish_seldonio_finefoods_xgboost: build_versions_generated
 	@./dopublish seldonio_finefoods_xgboost
+publish_seldonio_stream_itemsim: build_versions_generated
+	@./dopublish seldonio_stream_itemsim
+publish_seldonio_examples_tensorflow_deep_mnist: build_versions_generated
+	@./dopublish seldonio_examples_tensorflow_deep_mnist
 
 build_all:
 	@for item in $(ALL_LIST) ; do \

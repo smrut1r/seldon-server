@@ -65,6 +65,12 @@ zookeeper.json:zookeeper.json.in
 				-e  "s|%SELDON_ZOOKEEPER_K8S_IMAGE_VERSION%|$${SELDON_ZOOKEEPER_K8S_IMAGE_VERSION}|" \
 				> zookeeper.json && echo "created $@"
 
+kafka.json:kafka.json.in
+	@source $(SELDON_HOME)/build/build_versions; \
+		cat kafka.json.in | sed \
+				-e  "s|%SELDON_KAFKA_K8S_IMAGE_VERSION%|$${SELDON_KAFKA_K8S_IMAGE_VERSION}|" \
+				> kafka.json && echo "created $@"
+
 td-agent-server.json:td-agent-server.json.in
 	@source $(SELDON_HOME)/build/build_versions; \
 		cat td-agent-server.json.in | sed \
@@ -100,6 +106,20 @@ examples/finefoods/train-finefoods.json: examples/finefoods/train-finefoods.json
 				-e 's|%DATA_VOLUME%|$(DATA_VOLUME)|' \
 				-e "s|%SELDON_FINEFOODS_XGBOOST_IMAGE_VERSION%|$${SELDON_FINEFOODS_XGBOOST_IMAGE_VERSION}|" \
 				> examples/finefoods/train-finefoods.json && echo "created $@"
+
+examples/tensorflow_deep_mnist/train-tensorflow-deep-mnist.json: examples/tensorflow_deep_mnist/train-tensorflow-deep-mnist.json.in $(BUILD_VERSIONS_GENERATED_FILE)
+	@source $(BUILD_VERSIONS_GENERATED_FILE); \
+		cat examples/tensorflow_deep_mnist/train-tensorflow-deep-mnist.json.in  | sed \
+				-e 's|%DATA_VOLUME%|$(DATA_VOLUME)|' \
+				-e "s|%SELDON_TENSORFLOW_DEEP_MNIST_IMAGE_VERSION%|$${SELDON_TENSORFLOW_DEEP_MNIST_IMAGE_VERSION}|" \
+				> examples/tensorflow_deep_mnist/train-tensorflow-deep-mnist.json && echo "created $@"
+
+examples/tensorflow_deep_mnist/load-model-tensorflow-deep-mnist.json: examples/tensorflow_deep_mnist/load-model-tensorflow-deep-mnist.json.in $(BUILD_VERSIONS_GENERATED_FILE)
+	@source $(BUILD_VERSIONS_GENERATED_FILE); \
+		cat examples/tensorflow_deep_mnist/load-model-tensorflow-deep-mnist.json.in  | sed \
+				-e 's|%DATA_VOLUME%|$(DATA_VOLUME)|' \
+				-e "s|%SELDON_TENSORFLOW_DEEP_MNIST_IMAGE_VERSION%|$${SELDON_TENSORFLOW_DEEP_MNIST_IMAGE_VERSION}|" \
+				> examples/tensorflow_deep_mnist/load-model-tensorflow-deep-mnist.json && echo "created $@"
 
 examples/ml100k/ml100k-import.json: examples/ml100k/ml100k-import.json.in $(BUILD_VERSIONS_GENERATED_FILE)
 	@source $(BUILD_VERSIONS_GENERATED_FILE); \
@@ -137,14 +157,30 @@ server.json :server.json.in $(BUILD_VERSIONS_GENERATED_FILE)
 analytics/impressions-kafka-stream.json: analytics/impressions-kafka-stream.json.in $(BUILD_VERSIONS_GENERATED_FILE)
 	@source $(BUILD_VERSIONS_GENERATED_FILE); \
 		cat analytics/impressions-kafka-stream.json.in  | sed \
-				-e "s|%SELDON_SERVER_IMAGE_VERSION%|$${SELDON_SERVER_IMAGE_VERSION}|" \
+				-e "s|%SELDON_STREAM_BUILD_IMAGE_VERSION%|$${SELDON_STREAM_BUILD_IMAGE_VERSION}|" \
+				-e "s|%SELDON_STREAM_VERSION%|$${SELDON_STREAM_VERSION}|" \
 				> analytics/impressions-kafka-stream.json
 
 analytics/predictions-kafka-stream.json: analytics/predictions-kafka-stream.json.in $(BUILD_VERSIONS_GENERATED_FILE)
 	@source $(BUILD_VERSIONS_GENERATED_FILE); \
 		cat analytics/predictions-kafka-stream.json.in  | sed \
-				-e "s|%SELDON_SERVER_IMAGE_VERSION%|$${SELDON_SERVER_IMAGE_VERSION}|" \
+				-e "s|%SELDON_STREAM_BUILD_IMAGE_VERSION%|$${SELDON_STREAM_BUILD_IMAGE_VERSION}|" \
+				-e "s|%SELDON_STREAM_VERSION%|$${SELDON_STREAM_VERSION}|" \
 				> analytics/predictions-kafka-stream.json
+
+models/stream-itemsim-create.json: models/stream-itemsim-create.json.in $(BUILD_VERSIONS_GENERATED_FILE)
+	@source $(BUILD_VERSIONS_GENERATED_FILE); \
+		cat models/stream-itemsim-create.json.in  | sed \
+				-e "s|%SELDON_STREAM_ITEMSIM_IMAGE_VERSION%|$${SELDON_STREAM_ITEMSIM_IMAGE_VERSION}|" \
+				-e "s|%SELDON_STREAM_VERSION%|$${SELDON_STREAM_VERSION}|" \
+				> models/stream-itemsim-create.json
+
+models/stream-itemsim-dbupload.json: models/stream-itemsim-dbupload.json.in $(BUILD_VERSIONS_GENERATED_FILE)
+	@source $(BUILD_VERSIONS_GENERATED_FILE); \
+		cat models/stream-itemsim-dbupload.json.in  | sed \
+				-e "s|%SELDON_STREAM_ITEMSIM_IMAGE_VERSION%|$${SELDON_STREAM_ITEMSIM_IMAGE_VERSION}|" \
+				-e "s|%SELDON_STREAM_VERSION%|$${SELDON_STREAM_VERSION}|" \
+				> models/stream-itemsim-dbupload.json
 
 #
 # Development conf
@@ -191,7 +227,7 @@ GLUSTERFS_IP2=192.168.0.248
 glusterfs.json:glusterfs.json.in
 	@cat glusterfs.json.in | sed -e 's|%GLUSTERFS_IP1%|${GLUSTERFS_IP1}|'| sed -e 's|%GLUSTERFS_IP2%|${GLUSTERFS_IP2}|' > glusterfs.json && echo "created $@"
 
-conf:control.json mysql.json memcache.json td-agent-server.json spark-master.json spark-workers.json examples/reuters/import-data-job.json glusterfs.json server.json examples/ml100k/ml100k-import.json dev/server.json dev/control.json influxdb-grafana.json dev/iago.json zookeeper.json examples/ml10m/ml10m-import-item-similarity.json examples/ml10m/ml10m-import-matrix-factorization.json analytics/impressions-kafka-stream.json analytics/predictions-kafka-stream.json examples/finefoods/train-finefoods.json microservice_pipeline.template
+conf:control.json mysql.json memcache.json td-agent-server.json spark-master.json spark-workers.json examples/reuters/import-data-job.json glusterfs.json server.json examples/ml100k/ml100k-import.json dev/server.json dev/control.json influxdb-grafana.json dev/iago.json zookeeper.json kafka.json examples/ml10m/ml10m-import-item-similarity.json examples/ml10m/ml10m-import-matrix-factorization.json analytics/impressions-kafka-stream.json analytics/predictions-kafka-stream.json examples/finefoods/train-finefoods.json examples/tensorflow_deep_mnist/train-tensorflow-deep-mnist.json examples/tensorflow_deep_mnist/load-model-tensorflow-deep-mnist.json microservice_pipeline.template models/stream-itemsim-create.json models/stream-itemsim-dbupload.json
 
 
 #
@@ -225,12 +261,16 @@ clean:
 	rm -f examples/ml10m/ml10m-import-item-similarity.json
 	rm -f examples/ml10m/ml10m-import-matrix-factorization.json
 	rm -f examples/finefoods/train-finefoods.json
+	rm -f examples/tensorflow_deep_mnist/train-tensorflow-deep-mnist.json
+	rm -f examples/tensorflow_deep_mnist/load-model-tensorflow-deep-mnist.json
 	rm -f microservice-${MICROSERVICE_NAME}.json
 	rm -f glusterfs.json
 	rm -f zookeeper.json
+	rm -f kafka.json
 	rm -f dev/server.json
 	rm -f dev/control.json
 	rm -f dev/iago.json
 	rm -f analytics/*.json
 	rm -f microservice_pipeline.template
-
+	rm -f models/stream-itemsim-create.json
+	rm -f models/stream-itemsim-dbupload.json
