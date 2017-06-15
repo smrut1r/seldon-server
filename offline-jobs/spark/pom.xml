@@ -12,7 +12,7 @@
   <artifactId>seldon-spark</artifactId>
   <name>Offline Spark jobs</name>
   <properties>
-        <scala.version>2.10</scala.version>
+        <scala.version>2.11</scala.version>
         <spark.version>2.0.0</spark.version>
         <spark.scope>compile</spark.scope> <!--provided-->
         <curator.version>2.7.1</curator.version>
@@ -20,7 +20,7 @@
         <mahout.version>0.12.2</mahout.version>
     </properties>
 
-    <repositories>
+    <!--<repositories>
         <repository>
             <id>IESL Releases </id>
             <name>IESL Repo </name>
@@ -52,7 +52,7 @@
             <name>CIIR Nexus Releases</name>
             <url>http://scm-ciir.cs.umass.edu:8080/nexus/content/repositories/releases/</url>
         </repository>
-    </repositories>
+    </repositories>-->
    <pluginRepositories>
 	<pluginRepository>
 		<id>scala-tools.org</id>
@@ -67,10 +67,10 @@
          <plugin>
 			<groupId>org.scala-tools</groupId>
 			<artifactId>maven-scala-plugin</artifactId>
-              <!-- <configuration>
-                    <source>1.6</source>
-                    <target>1.6</target>
-                </configuration>-->
+               <configuration>
+                    <source>1.8</source>
+                    <target>1.8</target>
+                </configuration>
  			<executions>
 				<execution>
 					<id>compile</id>
@@ -237,7 +237,7 @@
 	
 	<dependency>
 		<groupId>com.github.scopt</groupId>
-		<artifactId>scopt_${scala.version}</artifactId>
+		<artifactId>scopt_2.10</artifactId>
 		<version>3.1.0</version>
     </dependency>
 
@@ -283,7 +283,7 @@
     </dependency>
     <dependency>
    		<groupId>com.netaporter</groupId>
-   		<artifactId>scala-uri_2.10</artifactId>
+   		<artifactId>scala-uri_2.11</artifactId>
    		<version>0.4.8</version>
 	</dependency>
 
@@ -330,7 +330,7 @@
       </dependency>-->
       <dependency>
           <groupId>com.propensive</groupId>
-          <artifactId>rapture-json_2.10</artifactId>
+          <artifactId>rapture-json_2.11</artifactId>
           <version>1.1.0</version>
       </dependency>
       <!--<dependency>
@@ -342,7 +342,7 @@
       <!-- https://mvnrepository.com/artifact/com.typesafe.akka/akka-actor_2.10 -->
       <dependency>
           <groupId>com.typesafe.akka</groupId>
-          <artifactId>akka-actor_2.10</artifactId>
+          <artifactId>akka-actor_2.11</artifactId>
           <version>2.3.15</version>
       </dependency>
 

@@ -48,13 +48,14 @@ import akka.actor.{ActorRef, ActorSystem, Inbox, Props}
 import com.typesafe.config.ConfigFactory
 import io.seldon.spark.SparkUtils
 import org.apache.mahout.cf.taste.impl.recommender.GenericRecommendedItem
-import org.apache.spark.sql.{SQLContext, SaveMode}
+import org.apache.spark.sql.{SQLContext, SaveMode, SparkSession}
 import org.apache.spark.sql.hive.HiveContext
 import org.apache.spark.sql.types._
 import org.apache.spark.{SparkConf, SparkContext}
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.context.ApplicationListener
 import org.springframework.context.event.ContextRefreshedEvent
+
 import scala.io.Source
 import scala.util.Try
 //import scalikejdbc._
@@ -104,7 +105,9 @@ object SeldonEvaluator {
     .set("spark.executor.memory", "30g")
     .set("spark.driver.maxResultSize", "10g")
   val sc = new SparkContext(conf)
-  val spark = new SQLContext(sc)
+  //val spark = new SQLContext(sc)
+  val spark = SparkSession.builder().getOrCreate()
+  import spark.implicits._
 
   /*val options = Map("driver" -> MYSQL_DRIVER,
       "url" -> MYSQL_CONNECTION_URL,
@@ -271,7 +274,6 @@ object SeldonEvaluator {
 
     val len = 1000 //testdf.count()
     var x = 0f
-    import spark.implicits._
     df.map(row => {
       val userId = row.getAs[Long]("user")
       val itemId = row.getAs[Long]("item")

@@ -33,7 +33,7 @@ import org.apache.spark.SparkContext._
 import org.apache.spark.ml.recommendation.{ALS, ALSModel}
 import org.apache.spark.ml.recommendation.ALS.Rating
 import org.apache.spark.mllib.recommendation.MatrixFactorizationModel
-import org.apache.spark.sql.SQLContext
+import org.apache.spark.sql.{SQLContext, SparkSession}
 
 import scala.collection.mutable.ArrayBuffer
 //import org.apache.spark.mllib.recommendation.{Rating, ALS, MatrixFactorizationModel}
@@ -134,8 +134,9 @@ class MfModelCreation(private val sc : SparkContext,config : MfConfig) {
     val ratings: RDD[Rating[Int]] = MfModelCreation.prepareRatings(glob, config, sc)
     val timeFirst = System.currentTimeMillis()
     println("munging data took "+(timeFirst-timeFirst)+"ms")
-    val sqlContext = new SQLContext(sc)
-    import sqlContext.implicits._
+    //val sqlContext = new SQLContext(sc)
+    val spark = SparkSession.builder().getOrCreate()
+    import spark.implicits._
     val als = new ALS()
         .setImplicitPrefs(true)
         //.setNonnegative(true)

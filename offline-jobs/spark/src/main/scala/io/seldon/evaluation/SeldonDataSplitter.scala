@@ -51,7 +51,7 @@ import io.seldon.spark.SparkUtils
 import io.seldon.spark.mllib.{MfConfig, MfModelCreation}
 import org.apache.mahout.cf.taste.impl.recommender.GenericRecommendedItem
 import org.apache.spark.rdd.JdbcRDD
-import org.apache.spark.sql.{SQLContext, SaveMode}
+import org.apache.spark.sql.{SQLContext, SaveMode, SparkSession}
 import org.apache.spark.sql.hive.HiveContext
 import org.apache.spark.sql.types._
 import org.apache.spark.{SparkConf, SparkContext}
@@ -111,12 +111,23 @@ object SeldonDataSplitter {
     .getOrCreate()*/
 
   //Class.forName("com.mysql.jdbc.Driver").newInstance
-  val conf = new SparkConf().setAppName("Seldon Validation").setMaster("local[2]")
-    .set("spark.driver.memory", "12g")
-    .set("spark.executor.memory", "12g")
-    .set("spark.driver.maxResultSize", "4g")
-  val sc = new SparkContext(conf)
-  val spark = new SQLContext(sc)
+//  val conf = new SparkConf().setAppName("Seldon Validation").setMaster("local[2]")
+//    .set("spark.driver.memory", "12g")
+//    .set("spark.executor.memory", "12g")
+//    .set("spark.driver.maxResultSize", "4g")
+  //val sc = new SparkContext(conf)
+  //val spark = new SQLContext(sc)
+
+  val spark = SparkSession
+    .builder()
+    .appName("Seldon Validation")
+    //.config("spark.sql.warehouse.dir", warehouseLocation)
+    .config("spark.driver.memory", "12g")
+    .config("spark.executor.memory", "12g")
+    .config("spark.driver.maxResultSize", "4g")
+    .enableHiveSupport()
+    .getOrCreate()
+  import spark.implicits._
 
   /*val options = Map("driver" -> MYSQL_DRIVER,
       "url" -> MYSQL_CONNECTION_URL,
@@ -163,14 +174,13 @@ object SeldonDataSplitter {
     }
     parser.parse(args)
     val config = MfModelCreation.updateConf(c)
-    val ratings = MfModelCreation.prepareRatings(dataFile, config, sc)
+    val ratings = MfModelCreation.prepareRatings(dataFile, config, spark.sparkContext)
 
-    import spark.implicits._
     ratings.toDF().repartition(1).write.mode(SaveMode.Overwrite).json(preparedFile) //.map(r => (r.user, r.item, r.rating))
 
     prepareSplits(percentage, preparedFile, folder, modelPath)
 
-    sc.stop()
+    spark.stop()
   }
 
   def prepareSplits(percentage: Float, inFile: String, folder: String, outPath: String) {

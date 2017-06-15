@@ -171,7 +171,7 @@ class TopicModel(private val sc : SparkContext,config : TopicConfig) {
         line ++= ","
         line ++= (i+1).toString()
         line ++= ":"
-        line ++= format("%1.5f", v)
+        line ++= v.formatted("%1.5f")
         }
       userTopics.append(line.toString())
     }
@@ -200,7 +200,7 @@ class TopicModel(private val sc : SparkContext,config : TopicConfig) {
           (i2,w2)
           }
       */
-      val termsAsStr = termWeights.map{case (term,(topic,weight)) => ""+topic+","+term+","+format("%1.7f", weight)}
+      val termsAsStr = termWeights.map{case (term,(topic,weight)) => ""+topic+","+term+","+weight.formatted("%1.7f")}
 
     
     

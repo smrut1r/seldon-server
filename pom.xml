@@ -34,6 +34,17 @@
         <jre.source.version>1.7</jre.source.version>
         <jre.target.version>1.7</jre.target.version>
     </properties>
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>io.seldon</groupId>
+                <artifactId>seldon-server</artifactId>
+                <version>1.4.5</version>
+                <classifier>classes</classifier>
+                <type>jar</type>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
 
     <build>
         <plugins>

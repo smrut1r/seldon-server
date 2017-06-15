@@ -1,13 +1,36 @@
 #!/bin/bash
 
+#chandrashekhar.wagh@talentica.com
 set -o nounset
 set -o errexit
 
+#docker run -it seldonio/seldon-control:2.2.3_v2 bash
+#kubectl exec -it seldon-control bash
+#docker ps | grep seldon-control
 #modify import_actions_utils.py in seldon-control
-vi /opt/conda/lib/python2.7/site-packages/seldon-2.0.1-py2.7.egg/seldon/cli/import_actions_utils.py1
-rm /opt/conda/lib/python2.7/site-packages/seldon-2.0.1-py2.7.egg/seldon/cli/import_actions_utils.py
-mv /opt/conda/lib/python2.7/site-packages/seldon-2.0.1-py2.7.egg/seldon/cli/import_actions_utils.py1 /opt/conda/lib/python2.7/site-packages/seldon-2.0.1-py2.7.egg/seldon/cli/import_actions_utils.py
-cat /opt/conda/lib/python2.7/site-packages/seldon-2.0.1-py2.7.egg/seldon/cli/import_actions_utils.py
+#### COPY CODE ####
+vi /opt/conda/lib/python2.7/site-packages/seldon-2.2.3-py2.7.egg/seldon/cli/import_actions_utils.py1
+rm /opt/conda/lib/python2.7/site-packages/seldon-2.2.3-py2.7.egg/seldon/cli/import_actions_utils.py
+mv /opt/conda/lib/python2.7/site-packages/seldon-2.2.3-py2.7.egg/seldon/cli/import_actions_utils.py1 /opt/conda/lib/python2.7/site-packages/seldon-2.2.3-py2.7.egg/seldon/cli/import_actions_utils.py
+cat /opt/conda/lib/python2.7/site-packages/seldon-2.2.3-py2.7.egg/seldon/cli/import_actions_utils.py
+
+docker cp seldon-spark-1.3.8-jar-with-dependencies.jar 2a104dd6ed8d:/home/seldon/libs
+docker cp seldon-spark-1.3.8.jar 2a104dd6ed8d:/home/seldon/libs/seldon-spark.jar
+docker cp seldon.conf 2a104dd6ed8d:/home/seldon/seldon.conf
+docker cp seldon.conf 2a104dd6ed8d:/root/.seldon/seldon.conf
+
+#### COPY DATA ####
+docker cp attr.json 2a104dd6ed8d:/home/seldon
+docker cp items.csv 2a104dd6ed8d:/home/seldon
+docker cp users.csv 2a104dd6ed8d:/home/seldon
+docker cp actions.csv 2a104dd6ed8d:/home/seldon
+
+#### COMMIT & RESTART ####
+ctrl+p, ctrl+q
+docker commit 2a104dd6ed8d seldonio/seldon-control:2.0.5_v1
+kubectl delete -f ~/seldon-server/kubernetes/conf/control.json
+kubectl apply -f ~/seldon-server/kubernetes/conf/control.json
+
 
 
 #the value type must be one of 'double', 'string', 'date' or an object
@@ -20,17 +43,7 @@ cat /opt/conda/lib/python2.7/site-packages/seldon-2.0.1-py2.7.egg/seldon/cli/imp
 
 {item:-1323853339,score:0.08861735}
 
-#docker run -it seldonio/seldon-control:2.0.5_v1 bash
-#kubectl exec -it seldon-control bash
-docker ps | grep seldon-control
-docker cp seldon-spark-1.3.8-jar-with-dependencies.jar 78be5304e984:/home/seldon/libs
-docker cp seldon-spark-1.3.8.jar 78be5304e984:/home/seldon/libs/seldon-spark.jar
-docker cp seldon.conf 7e4b15b08c74:/home/seldon/seldon.conf
-docker cp seldon.conf 7e4b15b08c74:/root/.seldon/seldon.conf
-ctrl+p, ctrl+q
-docker commit 78be5304e984 seldonio/seldon-control:2.0.5_v1
-kubectl delete -f ~/seldon-server/kubernetes/conf/control.json
-kubectl apply -f ~/seldon-server/kubernetes/conf/control.json
+
 
 docker run -it seldonio/seldon-server:1.3.8 bash
     >> docker cp seldon-server-1.3.8.war 5d2e20a7b305:/home/seldon/ROOT/
@@ -57,11 +70,6 @@ exit
 
 scp -i ~/security/AWS_QA.pem attr.json items.csv users.csv actions.csv ubuntu@54.205.194.231:/home/ubuntu
 
-docker ps |grep seldon-control
-docker cp attr.json a0210bc31548:/home/seldon
-docker cp items.csv a0210bc31548:/home/seldon
-docker cp users.csv a0210bc31548:/home/seldon
-docker cp actions.csv a0210bc31548:/home/seldon
 
 seldon-cli client --action setup --client-name ahalife --db-name ClientDB
 seldon-cli attr --action apply --client-name ahalife --json attr.json
