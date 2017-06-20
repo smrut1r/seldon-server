@@ -145,7 +145,6 @@ class MfModelCreation(private val spark : SparkSession,config : MfConfig) {
         .setUserCol("userId")
         .setItemCol("itemId")
         .setRatingCol("preference")
-    import spark.implicits._
     val model = als.fit(ratings.toDF(colNames = "userId", "itemId", "preference"))
     //val model: MatrixFactorizationModel = ALS.trainImplicit(ratings, rank, iterations, lambda, alpha)
     println("training model took "+(System.currentTimeMillis() - timeFirst)+"ms")

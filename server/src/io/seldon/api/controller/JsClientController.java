@@ -265,7 +265,7 @@ public class JsClientController {
                                             String lastRecommendationListUuid, Integer recommendationsLimit, String attributes,
                                             String algorithms,String referrer,String recTag, boolean includeCohort, String scoreItems,String locale) {
         Long internalItemId = null;
-        if (itemId != null) {
+        if (StringUtils.isNotBlank(itemId)) {
             try {
                 internalItemId = itemService.getInternalItemId(consumerBean, itemId);
             } catch (APIException e) {

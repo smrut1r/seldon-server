@@ -54,6 +54,7 @@ seldon-cli import --action actions --client-name ahalife --file-path actions.csv
 kubectl get pods
 kubectl exec -ti seldon-server-3550419173-xdmgn -- /bin/bash
 docker images|grep seldon-server
+
 docker run -it seldonio/seldon-server:1.4.5 bash
 docker cp ~/seldon-server/server/target/seldon-server-1.4.5.war 919e466c3b45:/home/seldon/ROOT/
 cd /home/seldon/ROOT/
@@ -61,11 +62,12 @@ ls
 rm -rf /usr/local/tomcat/webapps/ROOT/META-INF
 rm -rf /usr/local/tomcat/webapps/ROOT/WEB-INF
 unzip seldon-server-1.4.5.war
-rm seldon-server-1.4.5.war
+#rm seldon-server-1.4.5.war
 ctrl+p, ctrl+q
 docker commit e9f7f18973b2 seldonio/seldon-server:1.4.5
 kubectl delete -f ~/seldon-server/kubernetes/conf/dev/server.json
 kubectl apply -f ~/seldon-server/kubernetes/conf/dev/server.json
+kubectl get services
 
 kubectl get pods
 
