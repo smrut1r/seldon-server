@@ -62,8 +62,9 @@ luigi --module seldon.luigi.spark SeldonItemSimilarity --local-schedule --client
 
 seldon-cli rec_alg --action commit --client-name ahalife
 seldon-cli client --action zk_push
-seldon-cli rec_alg  --action delete --client-name ahalife --recommender-name recentMfRecommender
 seldon-cli rec_alg --action show --client-name ahalife
+
+seldon-cli rec_alg  --action delete --client-name ahalife --recommender-name recentMfRecommender
 seldon-cli api --client-name ahalife --endpoint /js/recommendations
 
 seldon-cli rec_alg  --action delete --client-name ahalife --recommender-name itemSimilarityRecommender

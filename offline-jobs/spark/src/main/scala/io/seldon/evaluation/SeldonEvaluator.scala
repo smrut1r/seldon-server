@@ -104,9 +104,9 @@ object SeldonEvaluator {
     .set("spark.driver.memory", "30g")
     .set("spark.executor.memory", "30g")
     .set("spark.driver.maxResultSize", "10g")
-  val sc = new SparkContext(conf)
+  //val sc = new SparkContext(conf)
   //val spark = new SQLContext(sc)
-  val spark = SparkSession.builder().getOrCreate()
+  val spark = SparkSession.builder().config(conf).getOrCreate()
   import spark.implicits._
 
   /*val options = Map("driver" -> MYSQL_DRIVER,
@@ -145,7 +145,7 @@ object SeldonEvaluator {
 
     evaluate(modelPath, recPath)
     println("completed!!")
-    sc.stop()
+    spark.stop()
   }
 
   def evaluate(splitPath: String, recPath: String) {

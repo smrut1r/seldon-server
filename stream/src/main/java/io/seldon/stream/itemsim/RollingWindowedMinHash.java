@@ -25,7 +25,7 @@ import io.seldon.stream.itemsim.minhash.Hasher;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.Predicate;
+//import java.util.function.Predicate;
 
 public class RollingWindowedMinHash implements MinHasher {
 	
@@ -74,12 +74,13 @@ public class RollingWindowedMinHash implements MinHasher {
 	private void removeOldEntries(long time)
 	{
 		final long start_t = time - window;
-		hashes.removeIf(new Predicate<MinHashEntry>() {
+		//smrjan: Commented for need of Java8
+		/*hashes.removeIf(new Predicate<MinHashEntry>() {
 			@Override
 			public boolean test(MinHashEntry t) {
 				return (t.time <= start_t);
 			}
-		});
+		});*/
 	}
 	
 	public static class MinHashEntry 

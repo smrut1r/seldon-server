@@ -76,8 +76,8 @@ case class MfConfig(
  )
  
 
-class MfModelCreation(private val sc : SparkContext,config : MfConfig) {
-
+class MfModelCreation(private val spark : SparkSession,config : MfConfig) {
+  val sc = spark.sparkContext
   object DataSourceMode extends Enumeration {
     def fromString(s: String): DataSourceMode = {
       if(s.startsWith("/"))
@@ -135,7 +135,6 @@ class MfModelCreation(private val sc : SparkContext,config : MfConfig) {
     val timeFirst = System.currentTimeMillis()
     println("munging data took "+(timeFirst-timeFirst)+"ms")
     //val sqlContext = new SQLContext(sc)
-    val spark = SparkSession.builder().getOrCreate()
     import spark.implicits._
     val als = new ALS()
         .setImplicitPrefs(true)
@@ -146,6 +145,7 @@ class MfModelCreation(private val sc : SparkContext,config : MfConfig) {
         .setUserCol("userId")
         .setItemCol("itemId")
         .setRatingCol("preference")
+    import spark.implicits._
     val model = als.fit(ratings.toDF(colNames = "userId", "itemId", "preference"))
     //val model: MatrixFactorizationModel = ALS.trainImplicit(ratings, rank, iterations, lambda, alpha)
     println("training model took "+(System.currentTimeMillis() - timeFirst)+"ms")
@@ -411,14 +411,21 @@ object MfModelCreation {
     {
       c = updateConf(c) // update from zookeeper args
       parser.parse(args) // overrride with args that were on command line
-      
-      val conf = new SparkConf().setAppName("MatrixFactorization")
+
+      val spark = SparkSession.builder()
+        .appName("MatrixFactorization")
+        .master("local")
+        .config("spark.driver.memory", "30g")
+        .config("spark.executor.memory", "30g")
+        .config("spark.driver.maxResultSize", "10g")
+        .getOrCreate()
+      /*val conf = new SparkConf().setAppName("MatrixFactorization")
 
       if (c.local)
         conf.setMaster("local")
-        .set("spark.executor.memory", "8g")
+        .set("spark.executor.memory", "8g")*/
 
-      val sc = new SparkContext(conf)
+      val sc = spark.sparkContext //new SparkContext(conf)
       try
       {
         sc.hadoopConfiguration.set("fs.s3.impl", "org.apache.hadoop.fs.s3native.NativeS3FileSystem")
@@ -428,8 +435,10 @@ object MfModelCreation {
          sc.hadoopConfiguration.set("fs.s3n.awsSecretAccessKey", c.awsSecret)
         }
         println(c)
-        val mf = new MfModelCreation(sc,c)
+        val mf = new MfModelCreation(spark,c)
         mf.run()
+      }catch{
+        case e: Exception => e.printStackTrace()
       }
       finally
       {

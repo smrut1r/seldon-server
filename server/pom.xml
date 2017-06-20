@@ -20,12 +20,12 @@
     <properties>
         <spring.version>4.1.0.RELEASE</spring.version>
         <curator.version>2.7.1</curator.version>
-        <mahout.version>0.12.2</mahout.version>
+        <mahout.version>0.13.0</mahout.version>
         <project.packaging>war</project.packaging>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <exclude.tests>no-exclusions</exclude.tests>
         <config.version>local</config.version>
-	    <grpc.version>1.0.0</grpc.version><!-- CURRENT_GRPC_VERSION -->
+	    <grpc.version>1.4.0</grpc.version><!-- CURRENT_GRPC_VERSION -->
       </properties>
 
     <build>
@@ -278,21 +278,26 @@
             <artifactId>guava</artifactId>
             <version>19.0</version>
         </dependency>
-        <dependency>
-            <groupId>org.apache.mahout</groupId>
-            <artifactId>mahout-core</artifactId>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.codehaus.jackson</groupId>
-                    <artifactId>jackson-core-asl</artifactId>
-                </exclusion>
+        <!--<dependency>-->
+            <!--<groupId>org.apache.mahout</groupId>-->
+            <!--<artifactId>mahout-core</artifactId>-->
+            <!--<exclusions>-->
+                <!--<exclusion>-->
+                    <!--<groupId>org.codehaus.jackson</groupId>-->
+                    <!--<artifactId>jackson-core-asl</artifactId>-->
+                <!--</exclusion>-->
 
-                <exclusion>
-                    <groupId>org.codehaus.jackson</groupId>
-                    <artifactId>jackson-mapper-asl</artifactId>
-                </exclusion>
-            </exclusions>
-            <version>0.9</version>
+                <!--<exclusion>-->
+                    <!--<groupId>org.codehaus.jackson</groupId>-->
+                    <!--<artifactId>jackson-mapper-asl</artifactId>-->
+                <!--</exclusion>-->
+            <!--</exclusions>-->
+            <!--<version>${mahout.version}</version>-->
+        <!--</dependency>-->
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-math</artifactId>
+            <version>2.2</version>
         </dependency>
         <dependency>
             <groupId>org.apache.mahout</groupId>
@@ -303,6 +308,12 @@
 			<groupId>org.apache.mahout</groupId>
 			<artifactId>mahout-examples</artifactId>
 			<version>${mahout.version}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>io.netty</groupId>
+                    <artifactId>netty-all</artifactId>
+                </exclusion>
+            </exclusions>
 		</dependency>
         <dependency>
             <groupId>com.googlecode.concurrentlinkedhashmap</groupId>
