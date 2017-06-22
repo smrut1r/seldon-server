@@ -7,10 +7,12 @@ import org.apache.spark.SparkConf
 import org.apache.spark.SparkContext
 import org.apache.spark.SparkContext._
 import org.apache.spark.mllib.recommendation.Rating
+
 import util.Random.nextInt
 import java.io.File
-import java.sql.{DriverManager,ResultSet}
-import collection.mutable.{ HashMap, MultiMap, Set }
+import java.sql.{DriverManager, ResultSet}
+
+import collection.mutable.{HashMap, MultiMap, Set}
 import scala.collection.mutable.ListBuffer
 import org.apache.spark.rdd.RDD
 import org.joda.time.DateTime
@@ -19,11 +21,14 @@ import io.seldon.spark.SparkUtils
 import org.apache.spark.mllib.clustering.LDA
 import org.apache.spark.mllib.linalg.{Vector, Vectors}
 import java.text.BreakIterator
+
 import scala.collection.mutable
 import io.seldon.spark.rdd.FileUtils
 import io.seldon.spark.rdd.DataSourceMode
+
 import scala.collection.mutable.ArrayBuffer
 import org.apache.spark.mllib.clustering.DistributedLDAModel
+import org.apache.spark.sql.SparkSession
 
 
 case class TopicConfig(
@@ -333,13 +338,20 @@ object TopicModel
       c = updateConf(c) // update from zookeeper args
       parser.parse(args) // overrride with args that were on command line
 
-       val conf = new SparkConf().setAppName("TopicModel")
+      val conf = new SparkConf().setAppName("TopicModel")
 
       if (c.local)
         conf.setMaster("local")
-        .set("spark.akka.frameSize", "300")
+          .set("spark.akka.frameSize", "300")
+          .set("spark.driver.memory", "15g")
+          .set("spark.executor.memory", "15g")
+          .set("spark.driver.maxResultSize", "10g")
 
-      val sc = new SparkContext(conf)
+      val spark = SparkSession.builder()
+        .config(conf)
+        .getOrCreate()
+
+      val sc = spark.sparkContext //new SparkContext(conf)
       try
       {
         sc.hadoopConfiguration.set("fs.s3.impl", "org.apache.hadoop.fs.s3native.NativeS3FileSystem")

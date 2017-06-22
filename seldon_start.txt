@@ -1,6 +1,5 @@
 #!/bin/bash
 
-#chandrashekhar.wagh@talentica.com
 set -o nounset
 set -o errexit
 
@@ -17,17 +16,27 @@ cat /opt/conda/lib/python2.7/site-packages/seldon-2.2.3-py2.7.egg/seldon/cli/imp
 
 mv spark-1.5.2-bin-hadoop2.6 spark-1.5.2-bin-hadoop2.6_old
 cd /opt
-wget http://archive.apache.org/dist/spark/spark-2.0.2/spark-2.0.2-bin-hadoop2.6.tgz
-tar -xvzf spark-2.0.2-bin-hadoop2.6.tgz
-ln -s spark-2.0.2-bin-hadoop2.6.tgz spark
+wget http://archive.apache.org/dist/spark/spark-2.0.1/spark-2.0.1-bin-hadoop2.6.tgz
+docker cp ~/Downloads/spark-2.0.1-bin-hadoop2.6.tgz d101adc41e8a:/opt
+
+cd /opt
+tar -xvzf spark-2.0.1-bin-hadoop2.6.tgz
+ln -s spark-2.0.1-bin-hadoop2.6.tgz spark
 rm libs/*
 
-docker cp ~/seldon-server/offline-jobs/spark/target/seldon-spark-1.4.5-jar-with-dependencies.jar 3b719eca3a88:/home/seldon/libs
-docker cp ~/seldon-server/offline-jobs/spark/target/seldon-spark-1.4.5.jar 3b719eca3a88:/home/seldon/libs/seldon-spark.jar
-docker cp ~/seldon-server/seldon.conf 2a104dd6ed8d:/home/seldon/seldon.conf
-docker cp ~/seldon-server/seldon.conf 2a104dd6ed8d:/root/.seldon/seldon.conf
+docker cp ~/seldon-server/offline-jobs/spark/target/seldon-spark-1.4.5-jar-with-dependencies.jar 7fdb0aecee69:/home/seldon/libs
+docker cp ~/seldon-server/offline-jobs/spark/target/seldon-spark-1.4.5.jar 7fdb0aecee69:/home/seldon/libs/seldon-spark.jar
+docker cp ~/seldon-server/seldon.conf b49ab1905abb:/home/seldon/seldon.conf
+docker cp ~/seldon-server/seldon.conf b49ab1905abb:/root/.seldon/seldon.conf
 
 #### COPY DATA ####
+mysql -u root -h 10.0.0.90 -pmypass -b -e 'drop database ahalife;'
+sudo rm -rf /seldon-data/seldon-models/ahalife
+sudo rm -rf /seldon-data/conf/zkroot/all_clients/ahalife
+exit
+
+scp -i ~/security/AWS_QA.pem attr.json items.csv users.csv actions.csv ubuntu@54.205.194.231:/home/ubuntu
+
 docker cp ~/ahalife/data/attr.json 2a104dd6ed8d:/home/seldon
 docker cp ~/ahalife/data/items.csv 2a104dd6ed8d:/home/seldon
 docker cp ~/ahalife/data/users.csv 2a104dd6ed8d:/home/seldon
@@ -35,7 +44,7 @@ docker cp ~/ahalife/data/actions.csv 2a104dd6ed8d:/home/seldon
 
 #### COMMIT & RESTART ####
 ctrl+p, ctrl+q
-docker commit 3b719eca3a88 seldonio/seldon-control:2.2.3_v2
+docker commit d101adc41e8a seldonio/seldon-control:2.2.3_v2
 kubectl delete -f ~/seldon-server/kubernetes/conf/control.json
 kubectl apply -f ~/seldon-server/kubernetes/conf/control.json
 
@@ -68,33 +77,16 @@ docker commit e9f7f18973b2 seldonio/seldon-server:1.4.5
 kubectl delete -f ~/seldon-server/kubernetes/conf/dev/server.json
 kubectl apply -f ~/seldon-server/kubernetes/conf/dev/server.json
 kubectl get services
-
 kubectl get pods
 
-mysql -u root -h mysql -pmypass -b -e 'drop database ahalife;'
-rm -rf /seldon-data/seldon-models/ahalife
-rm -rf /seldon-data/conf/zkroot/all_clients/ahalife
-exit
-
-scp -i ~/security/AWS_QA.pem attr.json items.csv users.csv actions.csv ubuntu@54.205.194.231:/home/ubuntu
-
-
 seldon-cli model --action add --client-name ahalife --model-name mahout
+seldon-cli model --action train --client-name ahalife --model-name mahout
 seldon-cli rec_alg  --action add --client-name ahalife --recommender-name mahoutUBRecommender
-seldon-cli model --action add --client-name ahalife --model-name matrix-factorization
+seldon-cli rec_alg --action commit --client-name ahalife
 
+seldon-cli model --action add --client-name ahalife --model-name matrix-factorization
 seldon-cli model --action train --client-name ahalife --model-name matrix-factorization
 seldon-cli rec_alg  --action add --client-name ahalife --recommender-name recentMfRecommender
 seldon-cli rec_alg --action commit --client-name ahalife
 seldon-cli client --action zk_push
 seldon-cli client --action zk_pull
-
-
-#Ptotal actions 664436
-#total items 19415
-#total users 301437
-#total actions 586220
-#total items 19407
-#total users 256909
-
-{item:-1323853339,score:0.08861735}

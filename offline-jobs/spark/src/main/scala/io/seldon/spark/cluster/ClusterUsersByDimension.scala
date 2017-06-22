@@ -27,15 +27,18 @@ import org.apache.spark.SparkConf
 import org.apache.spark.SparkContext
 import org.apache.spark.SparkContext._
 import org.apache.spark.mllib.recommendation.Rating
+
 import util.Random.nextInt
 import java.io.File
-import java.sql.{DriverManager,ResultSet}
-import collection.mutable.{ HashMap, MultiMap, Set }
+import java.sql.{DriverManager, ResultSet}
+
+import collection.mutable.{HashMap, MultiMap, Set}
 import scala.collection.mutable.ListBuffer
 import org.apache.spark.rdd.RDD
 import org.joda.time.DateTime
 import org.joda.time.Period
 import io.seldon.spark.SparkUtils
+import org.apache.spark.sql.SparkSession
 
 
 case class DimCount(m : scala.collection.mutable.Map[Int,Int],total : Int)
@@ -338,9 +341,16 @@ object ClusterUsersByDimension
 
       if (c.local)
         conf.setMaster("local")
-        .set("spark.akka.frameSize", "300")
+          .set("spark.akka.frameSize", "300")
+          .set("spark.driver.memory", "30g")
+          .set("spark.executor.memory", "30g")
+          .set("spark.driver.maxResultSize", "10g")
 
-      val sc = new SparkContext(conf)
+      val spark = SparkSession.builder()
+        .config(conf)
+        .getOrCreate()
+
+      val sc = spark.sparkContext //new SparkContext(conf)
       try
       {
         sc.hadoopConfiguration.set("fs.s3.impl", "org.apache.hadoop.fs.s3native.NativeS3FileSystem")

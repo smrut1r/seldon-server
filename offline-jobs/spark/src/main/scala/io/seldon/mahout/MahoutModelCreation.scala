@@ -27,7 +27,7 @@ import org.apache.curator.utils.EnsurePath
 import org.apache.log4j.{Level, Logger}
 import org.apache.spark.ml.recommendation.ALS.Rating
 import org.apache.spark.rdd.{JdbcRDD, RDD}
-import org.apache.spark.sql.{SQLContext, SaveMode}
+import org.apache.spark.sql.{SQLContext, SaveMode, SparkSession}
 import org.apache.spark.{SparkConf, SparkContext}
 import org.json4s.jackson.JsonMethods._
 
@@ -191,10 +191,17 @@ object MahoutModelCreation {
 
       if (c.local)
         conf.setMaster("local")
-          .set("spark.executor.memory", "8g")
+          .set("spark.driver.memory", "30g")
+          .set("spark.executor.memory", "30g")
+          .set("spark.driver.maxResultSize", "10g")
 
-      val sc = new SparkContext(conf)
-      val spark = new SQLContext(sc)
+      /*val sc = new SparkContext(conf)
+      val spark = new SQLContext(sc)*/
+      val spark = SparkSession.builder()
+        .config(conf)
+        .getOrCreate()
+
+      val sc = spark.sparkContext
       try
       {
         sc.hadoopConfiguration.set("fs.s3.impl", "org.apache.hadoop.fs.s3native.NativeS3FileSystem")

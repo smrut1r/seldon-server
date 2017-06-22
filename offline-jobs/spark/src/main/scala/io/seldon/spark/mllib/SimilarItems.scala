@@ -37,6 +37,7 @@ import io.seldon.spark.SparkUtils
 import scala.util.Random
 import io.seldon.spark.zookeeper.ZkCuratorHandler
 import org.apache.spark.rdd.RDD
+import org.apache.spark.sql.SparkSession
 
 case class SimilarItemsConfig(
     client : String = "",
@@ -264,9 +265,14 @@ object SimilarItems
 
       if (c.local)
         conf.setMaster("local")
-        .set("spark.executor.memory", "8g")
+        .set("spark.driver.memory", "15g")
+        .set("spark.executor.memory", "15g")
+        .set("spark.driver.maxResultSize", "10g")
 
-      val sc = new SparkContext(conf)
+      val spark = SparkSession.builder()
+        .config(conf)
+        .getOrCreate()
+      val sc = spark.sparkContext //new SparkContext(conf)
       try
       {
         sc.hadoopConfiguration.set("fs.s3.impl", "org.apache.hadoop.fs.s3native.NativeS3FileSystem")

@@ -7,6 +7,8 @@ import org.apache.spark.SparkContext
 import org.apache.spark.SparkContext._
 import org.apache.spark.mllib.fpm.{FPGrowth, FPGrowthModel}
 import io.seldon.spark.SparkUtils
+import org.apache.spark.sql.SparkSession
+
 import scala.collection.mutable.ListBuffer
 
 
@@ -267,10 +269,16 @@ object FPGrowthJob
 
       if (c.local)
         conf.setMaster("local")
-        .set("spark.akka.frameSize", "300")
-         .set("spark.executor.memory", "8g")
+          .set("spark.akka.frameSize", "300")
+          .set("spark.driver.memory", "30g")
+          .set("spark.executor.memory", "30g")
+          .set("spark.driver.maxResultSize", "10g")
 
-      val sc = new SparkContext(conf)
+      val spark = SparkSession.builder()
+        .config(conf)
+        .getOrCreate()
+
+      val sc = spark.sparkContext //new SparkContext(conf)
       try
       {
         sc.hadoopConfiguration.set("fs.s3.impl", "org.apache.hadoop.fs.s3native.NativeS3FileSystem")

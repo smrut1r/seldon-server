@@ -200,7 +200,7 @@
                     "cmd": "%SPARK_HOME%/bin/spark-submit",
                     "cmd_args": [
                         "--class",
-                        "io.seldon.spark.mahout.MahoutModelCreation",
+                        "io.seldon.mahout.MahoutModelCreation",
                         "--master",
                         "spark://spark-master:7077",
                         "%SELDON_SPARK_HOME%/seldon-spark-%SELDON_VERSION%-jar-with-dependencies.jar",

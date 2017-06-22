@@ -39,13 +39,13 @@
                                 "env": [
                                     {
                                         "name": "SPARK_MASTER_OPTS",
-                                        "value": "-Dspark.deploy.defaultCores=2"
+                                        "value": "-Dspark.deploy.defaultCores=8"
                                     }
                                 ],
                                 "name": "spark-master",
-                                "image": "gcr.io/google_containers/spark:1.5.2_v1",
+                                "image": "ramhiser/spark:2.0.1",
                                 "command": [
-                                    "/start-master"
+                                    "/spark-master"
                                 ],
                                 "ports": [
                                     {

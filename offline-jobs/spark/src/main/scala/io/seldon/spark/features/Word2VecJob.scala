@@ -25,15 +25,17 @@ import org.apache.log4j.Level
 import org.apache.log4j.Logger
 import org.apache.spark.SparkConf
 import org.apache.spark.SparkContext
-
 import org.apache.spark.rdd._
 import java.io.FileOutputStream
 import java.io.ObjectOutputStream
+
 import io.seldon.spark.SparkUtils
 import java.io.File
+
 import io.seldon.spark.rdd.DataSourceMode
 import io.seldon.spark.rdd.DataSourceMode._
 import io.seldon.spark.rdd.FileUtils
+import org.apache.spark.sql.SparkSession
     
 case class Word2VecConfig (
     client : String = "",
@@ -192,10 +194,17 @@ object Word2VecJob
        val conf = new SparkConf().setAppName("Word2Vec")
 
       if (c.local)
-        conf.setMaster("local")
-        .set("spark.akka.frameSize", "300")
+          conf.setMaster("local")
+          .set("spark.akka.frameSize", "300")
+          .set("spark.driver.memory", "15g")
+          .set("spark.executor.memory", "15g")
+          .set("spark.driver.maxResultSize", "10g")
 
-      val sc = new SparkContext(conf)
+      val spark = SparkSession.builder()
+        .config(conf)
+        .getOrCreate()
+
+      val sc = spark.sparkContext //new SparkContext(conf)
       try
       {
         sc.hadoopConfiguration.set("fs.s3.impl", "org.apache.hadoop.fs.s3native.NativeS3FileSystem")

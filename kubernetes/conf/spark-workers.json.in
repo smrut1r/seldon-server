@@ -35,9 +35,9 @@
                 "containers": [
                     {
                         "name": "spark-worker",
-                        "image": "gcr.io/google_containers/spark:1.5.2_v1",
+                        "image": "ramhiser/spark:2.0.1",
                         "command": [
-                            "/start-worker"
+                            "/spark-worker"
                         ],
                         "ports": [
                             {

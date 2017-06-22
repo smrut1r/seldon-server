@@ -2,9 +2,6 @@ cd ~/seldon-server/docker/examples/personalization/data
 make
 kubectl apply -f kubernetes.json
 
-#CloudSQL
-password: NF0hI9yEvPmPOtny
-
 cd server
 mvn clean install
 
@@ -70,6 +67,12 @@ seldon-cli api --client-name ahalife --endpoint /js/recommendations
 seldon-cli rec_alg  --action delete --client-name ahalife --recommender-name itemSimilarityRecommender
 seldon-cli rec_alg  --action add --client-name ahalife --recommender itemSimilarityRecommender
 
+mahout:
+seldon-cli model --action add --client-name ahalife --model-name mahout
+seldon-cli model --action train --client-name ahalife --model-name mahout
+seldon-cli rec_alg  --action add --client-name ahalife --recommender-name mahoutUBRecommender
+seldon-cli rec_alg --action commit --client-name ahalife
+
 matrix-factorization:
     train: MfModelCreation
     serve: mfRecommender, recentMfRecommender
@@ -97,7 +100,7 @@ seldon-cli model --action train --client-name ahalife --model-name similar-items
 ---
 SELDON_SPARK_HOME=~/seldon-server/offline-jobs/spark
 CLIENT=ahalife
-DB_HOST=10.0.0.214
+DB_HOST=10.0.0.17
 DB_USER=root
 DB_PASS=mypass
 DAY=1
@@ -169,8 +172,8 @@ basketanalysis:
 seldon-cli model --action add --client-name ahalife --model-name basketanalysis
 seldon-cli model --action add --client-name ahalife --model-name fpgrowth
 sudo rm -rf /seldon-data/seldon-models/ahalife/basketanalysis/1
-seldon-cli model --action train --client-name ahalife --model-name basketanalysis
 sudo rm -rf /seldon-data/seldon-models/ahalife/fpgrowth/1
+seldon-cli model --action train --client-name ahalife --model-name basketanalysis
 seldon-cli model --action train --client-name ahalife --model-name fpgrowth
 seldon-cli rec_alg  --action add --client-name ahalife --recommender-name assocRuleRecommender
 
@@ -368,3 +371,6 @@ To debug:
     a. Remote Connection Setting: Host (10.0.0.165), Port(80)
     b. Startup/Connections >> Debug: Port: 8000
     c. kubernetes/bin/seldon-up.sh >> dev (kubectl create -f ${STARTUP_DIR}/../conf/dev/server.json)
+
+"--driver-memory", "30g",
+"--executor-memory", "30g", 

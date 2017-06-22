@@ -411,13 +411,15 @@ object MfModelCreation {
       c = updateConf(c) // update from zookeeper args
       parser.parse(args) // overrride with args that were on command line
 
-      val spark = SparkSession.builder()
+      var ssb = SparkSession.builder()
         .appName("MatrixFactorization")
-        .master("local")
-        .config("spark.driver.memory", "30g")
-        .config("spark.executor.memory", "30g")
-        .config("spark.driver.maxResultSize", "10g")
-        .getOrCreate()
+      if (c.local)
+        ssb = ssb.master("local")
+          .config("spark.driver.memory", "30g")
+          .config("spark.executor.memory", "30g")
+          .config("spark.driver.maxResultSize", "10g")
+      val spark = ssb.getOrCreate()
+
       /*val conf = new SparkConf().setAppName("MatrixFactorization")
 
       if (c.local)

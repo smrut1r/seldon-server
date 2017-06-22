@@ -10,8 +10,10 @@ import org.apache.spark.mllib.feature.HashingTF
 import org.apache.spark.mllib.feature.IDF
 import org.apache.spark.mllib.stat.{MultivariateStatisticalSummary, Statistics}
 import java.sql.ResultSet
+
 import scala.collection.mutable.ListBuffer
 import org.apache.spark.mllib.feature.IDF
+import org.apache.spark.sql.SparkSession
 
 case class TagAffinityConfig(
     client : String = "",
@@ -286,9 +288,16 @@ class UserTagAffinity(private val sc : SparkContext,config : TagAffinityConfig) 
 
       if (c.local)
         conf.setMaster("local")
- //       .set("spark.akka.frameSize", "300")
+          //.set("spark.akka.frameSize", "300")
+          .set("spark.driver.memory", "15g")
+          .set("spark.executor.memory", "15g")
+          .set("spark.driver.maxResultSize", "10g")
 
-      val sc = new SparkContext(conf)
+      val spark = SparkSession.builder()
+        .config(conf)
+        .getOrCreate()
+
+      val sc = spark.sparkContext //new SparkContext(conf)
       try
       {
         sc.hadoopConfiguration.set("fs.s3.impl", "org.apache.hadoop.fs.s3native.NativeS3FileSystem")

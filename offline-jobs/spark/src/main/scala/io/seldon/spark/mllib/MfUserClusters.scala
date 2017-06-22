@@ -8,6 +8,7 @@ import io.seldon.spark.rdd.DataSourceMode
 import io.seldon.spark.zookeeper.ZkCuratorHandler
 import java.io.File
 import java.text.SimpleDateFormat
+
 import org.apache.curator.utils.EnsurePath
 import org.apache.spark._
 import org.apache.spark.SparkContext._
@@ -24,6 +25,8 @@ import org.json4s._
 import org.json4s.jackson.JsonMethods._
 import org.apache.log4j.Logger
 import org.apache.log4j.Level
+import org.apache.spark.sql.SparkSession
+
 import scala.collection.mutable
 import scala.util.Random._
 
@@ -370,9 +373,15 @@ object MfUserClusters {
 
       if (c.local)
         conf.setMaster("local")
-        .set("spark.executor.memory", "8g")
+          .set("spark.driver.memory", "30g")
+          .set("spark.executor.memory", "30g")
+          .set("spark.driver.maxResultSize", "10g")
 
-      val sc = new SparkContext(conf)
+      val spark = SparkSession.builder()
+        .config(conf)
+        .getOrCreate()
+
+      val sc = spark.sparkContext //new SparkContext(conf)
       try
       {
         sc.hadoopConfiguration.set("fs.s3.impl", "org.apache.hadoop.fs.s3native.NativeS3FileSystem")

@@ -8,8 +8,12 @@ import org.apache.spark.SparkContext
 import org.apache.spark.SparkContext._
 import io.seldon.spark.SparkUtils
 import java.sql.ResultSet
+
+import org.apache.spark.sql.SparkSession
+
 import scala.collection.mutable.ListBuffer
 import org.joda.time.format.DateTimeFormat
+
 import scala.util.Random
 
 case class BasketAnalysisConfig(
@@ -185,8 +189,15 @@ class BasketAnalysis(private val sc : SparkContext,config : BasketAnalysisConfig
 
       if (c.local)
         conf.setMaster("local")
+          .set("spark.driver.memory", "30g")
+          .set("spark.executor.memory", "30g")
+          .set("spark.driver.maxResultSize", "10g")
 
-      val sc = new SparkContext(conf)
+      val spark = SparkSession.builder()
+        .config(conf)
+        .getOrCreate()
+
+      val sc = spark.sparkContext //new SparkContext(conf)
       try
       {
         sc.hadoopConfiguration.set("fs.s3.impl", "org.apache.hadoop.fs.s3native.NativeS3FileSystem")
