@@ -57,7 +57,10 @@
                                         "protocol": "TCP"
                                     }
                                 ],
-                                "resources": {},
+				"resources": {
+				    "requests":{ "memory" : "200M" },
+				    "limits":{ "memory" : "1G"}
+				},
                                 "volumeMounts": [
                                     {
                                         "name": "data-volume",
