@@ -34,6 +34,7 @@ import pitt.search.semanticvectors.LuceneUtils;
 import pitt.search.semanticvectors.ObjectVector;
 import pitt.search.semanticvectors.SearchResult;
 import pitt.search.semanticvectors.VectorStore;
+import pitt.search.semanticvectors.vectors.RealVector;
 import pitt.search.semanticvectors.vectors.Vector;
 import pitt.search.semanticvectors.vectors.ZeroVectorException;
 
@@ -52,6 +53,7 @@ abstract public class VectorStoreRecommender {
 	   */
 	  public abstract double getScore(Vector testVector);
 	  public abstract double getScore(Vector v1,Vector v2);
+	  public abstract Vector getQueryVector();
 
 	  /**
 	   * Performs basic initialization; subclasses should normally call super() to use this.
@@ -200,8 +202,9 @@ abstract public class VectorStoreRecommender {
 	                                                              luceneUtils,
 	                                                              FlagConfig.getFlagConfig(null),
 	                                                              queryTerms);
-	      if (this.queryVector.isZeroVector()) {
-	        throw new ZeroVectorException("Query vector is zero ... no results.");
+	      if (this.queryVector.isZeroVector() || Float.isNaN(((RealVector) this.queryVector).getCoordinates()[0])) {
+			  //this.queryVector = null;
+			  throw new ZeroVectorException("Query vector is zero ... no results.");
 	      }
 	    }
 
@@ -215,6 +218,10 @@ abstract public class VectorStoreRecommender {
 		public double getScore(Vector v1, Vector v2) {
 			return v1.measureOverlap(v2);
 		}
+
+		  public Vector getQueryVector() {
+			  return queryVector;
+		  }
 	  }
 
 

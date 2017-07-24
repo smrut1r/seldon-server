@@ -1,0 +1,17 @@
+Exception in thread "main" org.apache.spark.SparkException: Task not serializable
+	at org.apache.spark.util.ClosureCleaner$.ensureSerializable(ClosureCleaner.scala:298)
+	at org.apache.spark.util.ClosureCleaner$.org$apache$spark$util$ClosureCleaner$$clean(ClosureCleaner.scala:288)
+	at org.apache.spark.util.ClosureCleaner$.clean(ClosureCleaner.scala:108)
+	at org.apache.spark.SparkContext.clean(SparkContext.scala:2056)
+	at org.apache.spark.rdd.RDD$$anonfun$map$1.apply(RDD.scala:366)
+	at org.apache.spark.rdd.RDD$$anonfun$map$1.apply(RDD.scala:365)
+	at org.apache.spark.rdd.RDDOperationScope$.withScope(RDDOperationScope.scala:151)
+	at org.apache.spark.rdd.RDDOperationScope$.withScope(RDDOperationScope.scala:112)
+	at org.apache.spark.rdd.RDD.withScope(RDD.scala:358)
+	at org.apache.spark.rdd.RDD.map(RDD.scala:365)
+	at io.seldon.spark.features.SeldonWord2Vec.learnVocab(SeldonWord2Vec.scala:142)
+	at io.seldon.spark.features.SeldonWord2Vec.fit(SeldonWord2Vec.scala:260)
+	at io.seldon.spark.features.Word2VecJob.run(Word2VecJob.scala:103)
+	at io.seldon.spark.features.Word2VecJob$.main(Word2VecJob.scala:218)
+	at io.seldon.spark.features.Word2VecJob.main(Word2VecJob.scala)
+    Caused by: java.io.NotSerializableException: org.apache.log4j.Logger

@@ -125,7 +125,7 @@ semvec(tag-sim):
     serve: semanticVectorsRecommender
 seldon-cli model --action add --client-name ahalife --model-name semvec
 seldon-cli model --action train --client-name ahalife --model-name semvec
-seldon-cli rec_alg  --action add --client-name ahalife --recommender-name semanticVectorsRecommender
+#seldon-cli rec_alg  --action add --client-name ahalife --recommender-name semanticVectorsRecommender
 
 tagaffinity:
     train: UserTagAffinity

@@ -26,8 +26,8 @@ rm libs/*
 
 docker cp ~/seldon-server/offline-jobs/spark/target/seldon-spark-1.4.5-jar-with-dependencies.jar 7fdb0aecee69:/home/seldon/libs
 docker cp ~/seldon-server/offline-jobs/spark/target/seldon-spark-1.4.5.jar 7fdb0aecee69:/home/seldon/libs/seldon-spark.jar
-docker cp ~/seldon-server/seldon.conf b49ab1905abb:/home/seldon/seldon.conf
-docker cp ~/seldon-server/seldon.conf b49ab1905abb:/root/.seldon/seldon.conf
+docker cp ~/seldon-server/seldon.conf 0e506811fea9:/home/seldon/seldon.conf
+docker cp ~/seldon-server/seldon.conf 0e506811fea9:/root/.seldon/seldon.conf
 
 #### COPY DATA ####
 mysql -u root -h 10.0.0.90 -pmypass -b -e 'drop database ahalife;'
@@ -44,7 +44,7 @@ docker cp ~/ahalife/data/actions.csv 2a104dd6ed8d:/home/seldon
 
 #### COMMIT & RESTART ####
 ctrl+p, ctrl+q
-docker commit d101adc41e8a seldonio/seldon-control:2.2.3_v2
+docker commit 0e506811fea9 seldonio/seldon-control:2.2.3_v2
 kubectl delete -f ~/seldon-server/kubernetes/conf/control.json
 kubectl apply -f ~/seldon-server/kubernetes/conf/control.json
 

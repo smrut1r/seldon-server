@@ -55,22 +55,22 @@ case class Word2VecConfig (
  
 class Word2VecJob(private val sc : SparkContext,config : Word2VecConfig) {
 
-  def activate(location : String) 
+  def activate(location : String)
   {
     import io.seldon.spark.zookeeper.ZkCuratorHandler
     import org.apache.curator.utils.EnsurePath
     val curator = new ZkCuratorHandler(config.zkHosts)
     if(curator.getCurator.getZookeeperClient.blockUntilConnectedOrTimedOut())
     {
-        val zkPath = "/all_clients/"+config.client+"/word2vec"
-        val ensurePath = new EnsurePath(zkPath)
-        ensurePath.ensure(curator.getCurator.getZookeeperClient)
-        curator.getCurator.setData().forPath(zkPath,location.getBytes())
+      val zkPath = "/all_clients/"+config.client+"/word2vec"
+      val ensurePath = new EnsurePath(zkPath)
+      ensurePath.ensure(curator.getCurator.getZookeeperClient)
+      curator.getCurator.setData().forPath(zkPath,location.getBytes())
     }
     else
       println("Failed to get zookeeper! Can't activate model")
   }
-    
+
   def convertToSemVecFormat(vectors : org.apache.spark.rdd.RDD[(String,Array[Float])],dimension : Int) = 
   {
     val vecString = vectors.coalesce(1, true).map{v =>

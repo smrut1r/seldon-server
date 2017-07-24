@@ -413,7 +413,7 @@
                  "days" : 1,
                  "activate" : true,
                  "jdbc" : "jdbc:mysql://mysql:3306/ahalife?user=root&password=mypass&characterEncoding=utf8",
-                 "tagAttr" : "tag_id",
+                 "tagAttr" : "default_category_id",
                  "minActionsPerUser" : 2,
                  "numTopics" : 50,
                  "maxIterations": 20

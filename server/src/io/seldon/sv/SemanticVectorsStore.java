@@ -200,6 +200,7 @@ public class SemanticVectorsStore {
 		                                                    exclusions,
 		                                                    inclusions,
 		                                                    minDoc);
+			 //if(vecSearcher.getQueryVector()==null)
 			 results = vecSearcher.getNearestNeighbors(numResults);
 			 
 			 
