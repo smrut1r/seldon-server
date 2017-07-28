@@ -4,47 +4,50 @@ set -o nounset
 set -o errexit
 
 #### SELDON-CONTROL for TRAINING####
-docker run -it seldonio/seldon-control:2.2.3_v2 bash
+docker run -it seldonio/seldon-control:2.2.5_v2 bash
 #kubectl exec -ti seldon-control -- /bin/bash
 #docker ps | grep seldon-control
 #modify import_actions_utils.py in seldon-control
 #### COPY CODE ####
-vi /opt/conda/lib/python2.7/site-packages/seldon-2.2.3-py2.7.egg/seldon/cli/import_actions_utils.py1
-rm /opt/conda/lib/python2.7/site-packages/seldon-2.2.3-py2.7.egg/seldon/cli/import_actions_utils.py
-mv /opt/conda/lib/python2.7/site-packages/seldon-2.2.3-py2.7.egg/seldon/cli/import_actions_utils.py1 /opt/conda/lib/python2.7/site-packages/seldon-2.2.3-py2.7.egg/seldon/cli/import_actions_utils.py
-cat /opt/conda/lib/python2.7/site-packages/seldon-2.2.3-py2.7.egg/seldon/cli/import_actions_utils.py
 
-mv spark-1.5.2-bin-hadoop2.6 spark-1.5.2-bin-hadoop2.6_old
-cd /opt
+CTRL=5a392dddfcc9
+docker cp ~/seldon-server/python/seldon/cli/import_actions_utils.py ${CTRL}:/opt/conda/lib/python2.7/site-packages/seldon-2.2.5-py2.7.egg/seldon/cli/import_actions_utils.py
+#cat /opt/conda/lib/python2.7/site-packages/seldon-2.2.5-py2.7.egg/seldon/cli/import_actions_utils.py
+
+cd ~/Downloads
 wget http://archive.apache.org/dist/spark/spark-2.0.1/spark-2.0.1-bin-hadoop2.6.tgz
-docker cp ~/Downloads/spark-2.0.1-bin-hadoop2.6.tgz d101adc41e8a:/opt
+docker cp ~/Downloads/spark-2.0.1-bin-hadoop2.6.tgz ${CTRL}:/opt
 
 cd /opt
+rm spark
+mv spark-1.5.2-bin-hadoop2.6 spark-1.5.2-bin-hadoop2.6_old
 tar -xvzf spark-2.0.1-bin-hadoop2.6.tgz
-ln -s spark-2.0.1-bin-hadoop2.6.tgz spark
-rm libs/*
+ln -s spark-2.0.1-bin-hadoop2.6 spark
 
-docker cp ~/seldon-server/offline-jobs/spark/target/seldon-spark-1.4.5-jar-with-dependencies.jar 7fdb0aecee69:/home/seldon/libs
-docker cp ~/seldon-server/offline-jobs/spark/target/seldon-spark-1.4.5.jar 7fdb0aecee69:/home/seldon/libs/seldon-spark.jar
-docker cp ~/seldon-server/seldon.conf 0e506811fea9:/home/seldon/seldon.conf
-docker cp ~/seldon-server/seldon.conf 0e506811fea9:/root/.seldon/seldon.conf
+rm /home/seldon/libs/*
+cat /home/seldon/seldon.conf
+
+docker cp ~/seldon-server/offline-jobs/spark/target/seldon-spark-1.4.8-jar-with-dependencies.jar ${CTRL}:/home/seldon/libs
+docker cp ~/seldon-server/offline-jobs/spark/target/seldon-spark-1.4.8.jar ${CTRL}:/home/seldon/libs/seldon-spark.jar
+docker cp ~/seldon-server/seldon.conf ${CTRL}:/home/seldon/seldon.conf
+docker cp ~/seldon-server/seldon.conf ${CTRL}:/root/.seldon/seldon.conf
 
 #### COPY DATA ####
-mysql -u root -h 10.0.0.90 -pmypass -b -e 'drop database ahalife;'
+mysql -u root -h 10.0.0.247 -pmypass -b -e 'drop database ahalife;'
 sudo rm -rf /seldon-data/seldon-models/ahalife
 sudo rm -rf /seldon-data/conf/zkroot/all_clients/ahalife
-exit
+#exit
 
 scp -i ~/security/AWS_QA.pem attr.json items.csv users.csv actions.csv ubuntu@54.205.194.231:/home/ubuntu
 
-docker cp ~/ahalife/data/attr.json 2a104dd6ed8d:/home/seldon
-docker cp ~/ahalife/data/items.csv 2a104dd6ed8d:/home/seldon
-docker cp ~/ahalife/data/users.csv 2a104dd6ed8d:/home/seldon
-docker cp ~/ahalife/data/actions.csv 2a104dd6ed8d:/home/seldon
+docker cp ~/ahalife/data/attr.json ${CTRL}:/home/seldon
+docker cp ~/ahalife/data/items.csv ${CTRL}:/home/seldon
+docker cp ~/ahalife/data/users.csv ${CTRL}:/home/seldon
+docker cp ~/ahalife/data/actions.csv ${CTRL}:/home/seldon
 
 #### COMMIT & RESTART ####
 ctrl+p, ctrl+q
-docker commit 0e506811fea9 seldonio/seldon-control:2.2.3_v2
+docker commit ${CTRL} seldonio/seldon-control:2.2.5_v2
 kubectl delete -f ~/seldon-server/kubernetes/conf/control.json
 kubectl apply -f ~/seldon-server/kubernetes/conf/control.json
 
@@ -64,16 +67,18 @@ kubectl get pods
 kubectl exec -ti seldon-server-3550419173-xdmgn -- /bin/bash
 docker images|grep seldon-server
 
-docker run -it seldonio/seldon-server:1.4.5 bash
-docker cp ~/seldon-server/server/target/seldon-server-1.4.5.war 919e466c3b45:/home/seldon/ROOT/
+docker run -it seldonio/seldon-server:1.4.8 bash
+SERV=7b663b333d0f
+
+docker cp ~/seldon-server/server/target/seldon-server-1.4.8.war ${SERV}:/home/seldon/ROOT/
 cd /home/seldon/ROOT/
 ls
 rm -rf /usr/local/tomcat/webapps/ROOT/META-INF
 rm -rf /usr/local/tomcat/webapps/ROOT/WEB-INF
-unzip seldon-server-1.4.5.war
-#rm seldon-server-1.4.5.war
+unzip seldon-server-1.4.8.war
+#rm seldon-server-1.4.8.war
 ctrl+p, ctrl+q
-docker commit e9f7f18973b2 seldonio/seldon-server:1.4.5
+docker commit ${SERV} seldonio/seldon-server:1.4.8
 kubectl delete -f ~/seldon-server/kubernetes/conf/dev/server.json
 kubectl apply -f ~/seldon-server/kubernetes/conf/dev/server.json
 kubectl get services

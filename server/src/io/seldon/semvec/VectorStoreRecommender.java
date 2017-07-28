@@ -198,9 +198,12 @@ abstract public class VectorStoreRecommender {
 	                                String minDoc)
 	        throws ZeroVectorException {
 	      super(queryVecStore, searchVecStore, luceneUtils, exclusions,inclusions,minDoc);
+
+	      FlagConfig flagConfig = FlagConfig.getFlagConfig(null);
+	      flagConfig.setDimension(500);
 	      this.queryVector = CompoundVectorBuilder.getQueryVector(queryVecStore,
 	                                                              luceneUtils,
-	                                                              FlagConfig.getFlagConfig(null),
+	                                                              flagConfig,
 	                                                              queryTerms);
 	      if (this.queryVector.isZeroVector() || Float.isNaN(((RealVector) this.queryVector).getCoordinates()[0])) {
 			  //this.queryVector = null;

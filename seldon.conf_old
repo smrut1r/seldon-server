@@ -201,73 +201,6 @@
                     "cmd_args": [
                         "--class",
                         "io.seldon.mahout.MahoutModelCreation",
-                        "--executor-memory",
-                        "%SPARK_EXECUTOR_MEMORY%",
-                        "--driver-memory",
-                        "%SPARK_DRIVER_MEMORY%",
-                        "--master",
-                        "spark://spark-master:7077",
-                        "%SELDON_SPARK_HOME%/seldon-spark-%SELDON_VERSION%-jar-with-dependencies.jar",
-                        "--client",
-                        "%CLIENT_NAME%",
-                        "--zookeeper",
-                        "%ZK_HOSTS%"
-                    ]
-                },
-                "job_type": "spark"
-            }
-        },
-        "mostpopulardim": {
-                    "config": {
-                        "activate": true,
-                        "days": 1,
-                        "inputPath": "%SELDON_MODELS%",
-                        "outputPath": "%SELDON_MODELS%",
-                        "startDay": 1,
-        		"jdbc" : "jdbc:mysql://mysql:3306/test?characterEncoding=utf8&user=root&password=mypass",
-        		"k" : 28
-                    },
-                    "training": {
-                        "job_info": {
-                            "cmd": "%SPARK_HOME%/bin/spark-submit",
-                            "cmd_args": [
-                                "--class",
-                                "io.seldon.spark.recommend.MostPopularByDimJob",
-                                "--executor-memory",
-                                "%SPARK_EXECUTOR_MEMORY%",
-                                "--driver-memory",
-                                "%SPARK_DRIVER_MEMORY%",
-                                "--master",
-                                "spark://spark-master:7077",
-                                "%SELDON_SPARK_HOME%/seldon-spark-%SELDON_VERSION%-jar-with-dependencies.jar",
-                                "--client",
-                                "%CLIENT_NAME%",
-                                "--zookeeper",
-                                "%ZK_HOSTS%"
-                            ]
-                        },
-                        "job_type": "spark"
-                    }
-                },
-        "mostpopular": {
-            "config": {
-                "activate": true,
-                "alpha": 0.01,
-                "days": 100,
-                "inputPath": "%SELDON_MODELS%",
-                "outputPath": "%SELDON_MODELS%",
-                "startDay": 1
-            },
-            "training": {
-                "job_info": {
-                    "cmd": "%SPARK_HOME%/bin/spark-submit",
-                    "cmd_args": [
-                        "--class",
-                        "io.seldon.spark.recommend.MostPopularJob",
-                        "--executor-memory",
-                        "%SPARK_EXECUTOR_MEMORY%",
-                        "--driver-memory",
-                        "%SPARK_DRIVER_MEMORY%",
                         "--master",
                         "spark://spark-master:7077",
                         "%SELDON_SPARK_HOME%/seldon-spark-%SELDON_VERSION%-jar-with-dependencies.jar",
@@ -283,14 +216,19 @@
         "matrix-factorization": {
             "config": {
                 "activate": true,
-                "alpha": 1,
-                "days": 1,
+                "alpha": 0.01,
+                "days": 100,
                 "inputPath": "%SELDON_MODELS%",
-                "iterations": 5,
-                "lambda": 0.01,
+                "iterations": 20,
+                "lambda": 0.1,
                 "outputPath": "%SELDON_MODELS%",
                 "rank": 30,
-                "startDay": 1
+                "startDay": 1,
+                "actionWeightings": [
+                                        {"actionType": 1, "valuePerAction": 1.0, "maxSum": 5.0},
+                                        {"actionType": 2, "valuePerAction": 2.0, "maxSum": 10.0},
+                                        {"actionType": 3, "valuePerAction": 3.0, "maxSum": 15.0}
+                                    ]
             },
             "training": {
                 "job_info": {
@@ -298,10 +236,12 @@
                     "cmd_args": [
                         "--class",
                         "io.seldon.spark.mllib.MfModelCreation",
-                        "--executor-memory",
-                        "%SPARK_EXECUTOR_MEMORY%",
                         "--driver-memory",
-                        "%SPARK_DRIVER_MEMORY%",
+                        "16g",
+                        "--conf",
+                        "spark.executor.memory= 30g",
+                        "--conf",
+                        "spark.driver.maxResultSize=10g",
                         "--master",
                         "spark://spark-master:7077",
                         "%SELDON_SPARK_HOME%/seldon-spark-%SELDON_VERSION%-jar-with-dependencies.jar",
@@ -314,17 +254,28 @@
                 "job_type": "spark"
             }
         },
-        "matrix-factorization-clusters": {
+        "mfclusters": {
             "config": {
                 "activate": true,
-                "alpha": 1,
-                "days": 1,
+                "alpha": 0.01,
+                "days": 100,
                 "inputPath": "%SELDON_MODELS%",
-                "iterations": 5,
-                "lambda": 0.01,
+                "iterations": 20,
+                "lambda": 0.1,
                 "outputPath": "%SELDON_MODELS%",
                 "rank": 30,
-                "startDay": 1
+                "startDay": 1,
+                "minActionsPerUser": 0,
+                "clusters": 20,
+                "kmeansIterations": 200,
+                "numRecommendations": 200,
+                "jdbc": "jdbc:mysql://mysql:3306/ahalife?user=root&password=mypass&characterEncoding=utf8",
+                "requiredDimensions": "",
+                "actionWeightings": [
+                                        {"actionType": 1, "valuePerAction": 1.0, "maxSum": 5.0},
+                                        {"actionType": 2, "valuePerAction": 2.0, "maxSum": 10.0},
+                                        {"actionType": 3, "valuePerAction": 3.0, "maxSum": 15.0}
+                                    ]
             },
             "training": {
                 "job_info": {
@@ -332,10 +283,6 @@
                     "cmd_args": [
                         "--class",
                         "io.seldon.spark.mllib.MfUserClusters",
-                        "--executor-memory",
-                        "%SPARK_EXECUTOR_MEMORY%",
-                        "--driver-memory",
-                        "%SPARK_DRIVER_MEMORY%",
                         "--master",
                         "spark://spark-master:7077",
                         "%SELDON_SPARK_HOME%/seldon-spark-%SELDON_VERSION%-jar-with-dependencies.jar",
@@ -348,7 +295,153 @@
                 "job_type": "spark"
             }
         },
-        "semvec": {},
+        "mostpopular": {
+            "config": {
+                "activate": true,
+                "alpha": 0.01,
+                "days": 100,
+                "inputPath": "%SELDON_MODELS%",
+                "outputPath": "%SELDON_MODELS%",
+                "startDay": 1
+            },
+            "training": {
+                "job_info": {
+                    "cmd": "%SPARK_HOME%/bin/spark-submit",
+                    "cmd_args": [
+                        "--class",
+                        "io.seldon.spark.recommend.MostPopularJob",
+                        "--master",
+                        "spark://spark-master:7077",
+                        "%SELDON_SPARK_HOME%/seldon-spark-%SELDON_VERSION%-jar-with-dependencies.jar",
+                        "--client",
+                        "%CLIENT_NAME%",
+                        "--zookeeper",
+                        "%ZK_HOSTS%"
+                    ]
+                },
+                "job_type": "spark"
+            }
+        },
+        "mostpopulardim": {
+            "config": {
+                "activate": true,
+                "alpha": 0.01,
+                "days": 100,
+                "inputPath": "%SELDON_MODELS%",
+                "outputPath": "%SELDON_MODELS%",
+                "startDay": 1,
+                "k": 1000,
+                "minCount": 0,
+                "jdbc": "jdbc:mysql://mysql:3306/ahalife?user=root&password=mypass&characterEncoding=utf8",
+                "requiredDimensions": ""
+            },
+            "training": {
+                "job_info": {
+                    "cmd": "%SPARK_HOME%/bin/spark-submit",
+                    "cmd_args": [
+                        "--class",
+                        "io.seldon.spark.recommend.MostPopularByDimJob",
+                        "--master",
+                        "spark://spark-master:7077",
+                        "%SELDON_SPARK_HOME%/seldon-spark-%SELDON_VERSION%-jar-with-dependencies.jar",
+                        "--client",
+                        "%CLIENT_NAME%",
+                        "--zookeeper",
+                        "%ZK_HOSTS%"
+                    ]
+                },
+                "job_type": "spark"
+            }
+        },
+        "sessionitems": {
+              "config": {
+                  "inputPath":"%SELDON_MODELS%",
+                  "outputPath":"%SELDON_MODELS%",
+                  "startDay" : 1,
+                  "days" : 1,
+                  "maxIntraSessionGapSecs" : -1,
+                  "minActionsPerUser" : 0,
+                  "maxActionsPerUser" : 100000
+              },
+              "training": {
+                  "job_info": {
+                      "cmd": "%SPARK_HOME%/bin/spark-submit",
+                      "cmd_args": [
+                          "--class",
+                          "io.seldon.spark.topics.SessionItems",
+                          "--master",
+                          "spark://spark-master:7077",
+                          "%SELDON_SPARK_HOME%/seldon-spark-%SELDON_VERSION%-jar-with-dependencies.jar",
+                          "--client",
+                          "%CLIENT_NAME%",
+                          "--zookeeper",
+                          "%ZK_HOSTS%"
+                      ]
+                  },
+                  "job_type": "spark"
+              }
+        },
+        "word2vec": {
+            "config": {
+                "inputPath":"%SELDON_MODELS%",
+                "outputPath":"%SELDON_MODELS%",
+                "activate":true,
+                "startDay" : 1,
+                "days" : 1,
+                "activate" : true,
+                "minWordCount" : 5,
+                "vectorSize" : 500
+            },
+            "training": {
+                  "job_info": {
+                      "cmd": "%SPARK_HOME%/bin/spark-submit",
+                      "cmd_args": [
+                          "--class",
+                          "io.seldon.spark.features.Word2VecJob",
+                          "--master",
+                          "spark://spark-master:7077",
+                          "%SELDON_SPARK_HOME%/seldon-spark-%SELDON_VERSION%-jar-with-dependencies.jar",
+                          "--client",
+                          "%CLIENT_NAME%",
+                          "--zookeeper",
+                          "%ZK_HOSTS%"
+                      ]
+                  },
+                  "job_type": "spark"
+              }
+        },
+         "topic-lda": {
+             "config": {
+                 "inputPath":"%SELDON_MODELS%",
+                 "outputPath":"%SELDON_MODELS%",
+                 "activate":true,
+                 "startDay" : 1,
+                 "days" : 1,
+                 "activate" : true,
+                 "jdbc" : "jdbc:mysql://mysql:3306/ahalife?user=root&password=mypass&characterEncoding=utf8",
+                 "tagAttr" : "default_category_id",
+                 "minActionsPerUser" : 2,
+                 "numTopics" : 50,
+                 "maxIterations": 20
+             },
+             "training": {
+                   "job_info": {
+                       "cmd": "%SPARK_HOME%/bin/spark-submit",
+                       "cmd_args": [
+                           "--class",
+                           "io.seldon.spark.cluster.TopicModel",
+                           "--master",
+                           "spark://spark-master:7077",
+                           "%SELDON_SPARK_HOME%/seldon-spark-%SELDON_VERSION%-jar-with-dependencies.jar",
+                           "--client",
+                           "%CLIENT_NAME%",
+                           "--zookeeper",
+                           "%ZK_HOSTS%"
+                       ]
+                   },
+                   "job_type": "spark"
+               }
+         },
         "similar-items": {
             "config": {
                 "activate": true,
@@ -356,13 +449,13 @@
                 "inputPath": "%SELDON_MODELS%",
                 "outputPath": "%SELDON_MODELS%",
                 "startDay": 1,
-		"itemType" : -1,
-		"limit" : 100,
-		"minItemsPerUser" : 0,
-		"minUsersPerItem" : 0,    
-		"maxUsersPerItem" : 2000000,    
-		"dimsumThreshold" : 0.1,
-		"sample" : 1.0
+                "itemType" : 3,
+                "limit" : 100,
+                "minItemsPerUser" : 2,
+                "minUsersPerItem" : 2,
+                "maxUsersPerItem" : 20000,
+                "dimsumThreshold" : 0.1,
+                "sample" : 1.0
             },
             "training": {
                 "job_info": {
@@ -370,12 +463,12 @@
                     "cmd_args": [
                         "--class",
                         "io.seldon.spark.mllib.SimilarItems",
-                        "--executor-memory",
-                        "%SPARK_EXECUTOR_MEMORY%",
-                        "--driver-memory",
-                        "%SPARK_DRIVER_MEMORY%",
-			"--conf",
-			"spark.driver.maxResultSize=10g",
+                        "--conf",
+                        "spark.driver.memory=30g",
+                        "--conf",
+                        "spark.driver.maxResultSize=30g",
+                        "--conf",
+                        "spark.driver.maxResultSize=10g",
                         "--master",
                         "spark://spark-master:7077",
                         "%SELDON_SPARK_HOME%/seldon-spark-%SELDON_VERSION%-jar-with-dependencies.jar",
@@ -495,10 +588,6 @@
             "cmd_args": [
                 "--class",
                 "io.seldon.spark.actions.GroupActionsJob",
-                "--executor-memory",
-                "%SPARK_EXECUTOR_MEMORY%",
-                "--driver-memory",
-                "%SPARK_DRIVER_MEMORY%",
                 "--master",
                 "spark://spark-master:7077",
                 "%SELDON_SPARK_HOME%/seldon-spark-%SELDON_VERSION%-jar-with-dependencies.jar",
@@ -519,10 +608,6 @@
             "cmd_args": [
                 "--class",
                 "io.seldon.spark.events.ProcessEventsJob",
-		"--executor-memory",
-                "%SPARK_EXECUTOR_MEMORY%",
-                "--driver-memory",
-                "%SPARK_DRIVER_MEMORY%",
                 "--master",
                 "spark://spark-master:7077",
                 "%SELDON_SPARK_HOME%/seldon-spark-%SELDON_VERSION%-jar-with-dependencies.jar",
@@ -540,7 +625,7 @@
     "seldon_logs": "/seldon-data/logs",
     "seldon_models": "/seldon-data/seldon-models",
     "seldon_spark_home": "/home/seldon/libs",
-    "seldon_version": "__SELDON_VERSION__",
+    "seldon_version": "1.4.8",
     "server_endpoint": "http://seldon-server",
     "spark_home": "/opt/spark",
     "zk_hosts": "zookeeper-1:2181,zookeeper-2:2181,zookeeper-3:2181",
@@ -548,6 +633,6 @@
     "grafana_endpoint" : "http://monitoring-grafana",
     "grafana_dashboard_template" : "/home/seldon/client-dashboard.json",
     "grpc_util_home" : "/home/seldon/grpc-util",
-    "spark_executor_memory" : "30g",
-    "spark_driver_memory" : "16g"
+    "spark_executor_memory" : "16g",
+    "spark_driver_memory" : "10g"
 }

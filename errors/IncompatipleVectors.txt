@@ -1,0 +1,10 @@
+pitt.search.semanticvectors.vectors.IncompatibleVectorsException: Trying to combine vectors of dimension: 200, 500
+This almost certainly indicates a programming error!
+	pitt.search.semanticvectors.vectors.IncompatibleVectorsException.checkVectorsCompatible(IncompatibleVectorsException.java:61)
+	pitt.search.semanticvectors.vectors.RealVector.superpose(RealVector.java:276)
+	pitt.search.semanticvectors.CompoundVectorBuilder.getAdditiveQueryVector(CompoundVectorBuilder.java:392)
+	pitt.search.semanticvectors.CompoundVectorBuilder.getQueryVector(CompoundVectorBuilder.java:367)
+	io.seldon.semvec.VectorStoreRecommender$VectorStoreRecommenderCosine.<init>(VectorStoreRecommender.java:201)
+
+Fix:
+

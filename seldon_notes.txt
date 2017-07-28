@@ -100,7 +100,7 @@ seldon-cli model --action train --client-name ahalife --model-name similar-items
 ---
 SELDON_SPARK_HOME=~/seldon-server/offline-jobs/spark
 CLIENT=ahalife
-DB_HOST=10.0.0.17
+DB_HOST=10.0.0.70
 DB_USER=root
 DB_PASS=mypass
 DAY=1

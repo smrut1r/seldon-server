@@ -47,7 +47,7 @@
                         ],
 			"resources": {
 			    "requests":{ "memory" : "1G" },
-			    "limits":{ "memory" : "1G"}
+			    "limits":{ "memory" : "16G"}
 			},
                         "volumeMounts": [
                             {

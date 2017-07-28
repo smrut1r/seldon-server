@@ -15,3 +15,5 @@ Exception in thread "main" org.apache.spark.SparkException: Task not serializabl
 	at io.seldon.spark.features.Word2VecJob$.main(Word2VecJob.scala:218)
 	at io.seldon.spark.features.Word2VecJob.main(Word2VecJob.scala)
     Caused by: java.io.NotSerializableException: org.apache.log4j.Logger
+Fix:
+    Use Spark's Logger
