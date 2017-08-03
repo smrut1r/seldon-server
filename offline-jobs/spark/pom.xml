@@ -295,7 +295,7 @@
 
         <!-- EVALUATION -->
 
-      <dependency>
+      <!--<dependency>
           <groupId>net.recommenders.rival</groupId>
           <artifactId>rival-evaluate</artifactId>
           <version>0.2</version>
@@ -316,7 +316,23 @@
           <artifactId>rival-recommend</artifactId>
           <version>0.2</version>
       </dependency>
+      <dependency>
+          <groupId>net.recommenders.rival</groupId>
+          <artifactId>rival-recommend</artifactId>
+          <version>0.2</version>
+      </dependency>-->
 
+      <dependency>
+          <groupId>com.github.jongwook</groupId>
+          <artifactId>spark-ranking-metrics_2.11</artifactId>
+          <version>0.0.1</version>
+      </dependency>
+
+      <dependency>
+          <groupId>me.tongfei</groupId>
+          <artifactId>progressbar</artifactId>
+          <version>0.5.5</version>
+      </dependency>
 
       <dependency>
           <groupId>com.typesafe</groupId>

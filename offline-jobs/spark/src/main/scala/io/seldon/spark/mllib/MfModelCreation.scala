@@ -25,6 +25,7 @@ import _root_.io.seldon.spark.rdd.FileUtils
 import io.seldon.spark.zookeeper.ZkCuratorHandler
 import java.io.File
 import java.text.SimpleDateFormat
+import java.util
 
 import org.apache.curator.utils.EnsurePath
 import org.apache.spark._
@@ -33,7 +34,8 @@ import org.apache.spark.SparkContext._
 import org.apache.spark.ml.recommendation.{ALS, ALSModel}
 import org.apache.spark.ml.recommendation.ALS.Rating
 import org.apache.spark.mllib.recommendation.MatrixFactorizationModel
-import org.apache.spark.sql.{SQLContext, SparkSession}
+import org.apache.spark.sql.{DataFrame, SQLContext, SparkSession}
+import _root_.io.seldon.evaluation.{SeldonDataSplitter, SeldonRecommender, SeldonEvaluator}
 
 import scala.collection.mutable.ArrayBuffer
 //import org.apache.spark.mllib.recommendation.{Rating, ALS, MatrixFactorizationModel}
@@ -107,7 +109,7 @@ class MfModelCreation(private val spark : SparkSession,config : MfConfig) {
     }
   }
   
-  def run() 
+  def run(split: Float)
   {
     val client = config.client
     val date:Int = config.startDay
@@ -132,20 +134,22 @@ class MfModelCreation(private val spark : SparkSession,config : MfConfig) {
     val startTime = System.currentTimeMillis()
     val glob = toSparkResource(inputFilesLocation, inputDataSourceMode) + ((date - daysOfActions + 1) to date).mkString("{", ",", "}")
     val ratings: RDD[Rating[Int]] = MfModelCreation.prepareRatings(glob, config, sc)
+    import spark.implicits._
+    val ratingsDf = ratings.toDF(colNames = "userId", "itemId", "preference")
+    val (train, test) = SeldonDataSplitter.prepareSplits(split, ratingsDf);
     val timeFirst = System.currentTimeMillis()
     println("munging data took "+(timeFirst-timeFirst)+"ms")
     //val sqlContext = new SQLContext(sc)
-    import spark.implicits._
     val als = new ALS()
-        .setImplicitPrefs(true)
-        //.setNonnegative(true)
+        .setImplicitPrefs(false)
+        .setNonnegative(true)
         .setMaxIter(iterations)
         .setRegParam(lambda)
         .setAlpha(alpha)
         .setUserCol("userId")
         .setItemCol("itemId")
         .setRatingCol("preference")
-    val model = als.fit(ratings.toDF(colNames = "userId", "itemId", "preference"))
+    val model = als.fit(train)
     //val model: MatrixFactorizationModel = ALS.trainImplicit(ratings, rank, iterations, lambda, alpha)
     println("training model took "+(System.currentTimeMillis() - timeFirst)+"ms")
     outputModelToFile(model, toOutputResource(outputFilesLocation,outputDataSourceMode), outputDataSourceMode, client,date)
@@ -163,6 +167,14 @@ class MfModelCreation(private val spark : SparkSession,config : MfConfig) {
     }
     
     println(List(rank,lambda,iterations,alpha,0,System.currentTimeMillis() - timeFirst).mkString(","))
+
+    //Evaluate for test dataset
+    if(split!=null){
+      val algo = "RECENT_MATRIX_FACTOR"
+      val algos = util.Arrays.asList(algo)
+      val recs = SeldonRecommender.recommend(test, algos, 50, spark)
+      SeldonEvaluator.evaluate(algo, test, recs)
+    }
 
     model.userFactors.unpersist()
     model.itemFactors.unpersist()
@@ -210,7 +222,7 @@ class MfModelCreation(private val spark : SparkSession,config : MfConfig) {
       }).collect()*/
       p => model.userFactors.collect().foreach {
         u => {
-          val strings = u.getAs[ArrayBuffer[Float]](1).map(d => f"$d%.5g")
+          val strings = u.getAs[ArrayBuffer[Float]](1).map(d => f"$d") //%.5g
           p.println(u.get(0).toString + "|" + strings.mkString(","))
         }
       }
@@ -218,7 +230,7 @@ class MfModelCreation(private val spark : SparkSession,config : MfConfig) {
     printToFile(prodFile) {
       p => model.itemFactors.collect().foreach {
         u => {
-          val strings = u.getAs[ArrayBuffer[Float]](1).map(d => f"$d%.5g")
+          val strings = u.getAs[ArrayBuffer[Float]](1).map(d => f"$d") //%.5g
           p.println(u.get(0).toString + "|" + strings.mkString(","))
         }
 
@@ -384,7 +396,7 @@ object MfModelCreation {
   {
     Logger.getLogger("org.apache.spark").setLevel(Level.WARN)
     Logger.getLogger("org.eclipse.jetty.server").setLevel(Level.OFF)
-    
+
     var c = new MfConfig()
     val parser = new scopt.OptionParser[Unit]("MatrixFactorization") {
     head("ClusterUsersByDimension", "1.x")
@@ -437,7 +449,7 @@ object MfModelCreation {
         }
         println(c)
         val mf = new MfModelCreation(spark,c)
-        mf.run()
+        mf.run(0.8f)
       }catch{
         case e: Exception => e.printStackTrace()
       }

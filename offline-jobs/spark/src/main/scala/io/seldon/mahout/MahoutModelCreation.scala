@@ -18,9 +18,11 @@ package io.seldon.mahout
 import java.io.File
 import java.lang.Long
 import java.sql.{DriverManager, ResultSet}
+import java.util
 
 import akka.actor.{ActorRef, ActorSystem, Inbox, Props}
 import com.typesafe.config.ConfigFactory
+import io.seldon.evaluation.{SeldonDataSplitter, SeldonEvaluator, SeldonRecommender}
 import io.seldon.spark.SparkUtils
 import io.seldon.spark.zookeeper.ZkCuratorHandler
 import org.apache.curator.utils.EnsurePath
@@ -213,6 +215,7 @@ object MahoutModelCreation {
         println(c)
         /*val mf = new MfModelCreation(sc,c)
         mf.run()*/
+        val split = 0.8f
         val config = c
         val inputFilesLocation = config.inputPath + "/" + config.client + "/actions/"
         val outputFilesLocation = config.outputPath + "/" + config.client +"/mahout/"
@@ -222,7 +225,10 @@ object MahoutModelCreation {
         val ratings = prepareRatings(dataFile, config, sc)
 
         import spark.implicits._
-        ratings.toDF().repartition(1).write.mode(SaveMode.Overwrite).csv(outputFilesLocation) //.map(r => (r.user, r.item, r.rating))
+        val ratingsDf = ratings.toDF(colNames = "userId", "itemId", "preference")
+        val (train, test) = SeldonDataSplitter.prepareSplits(split, ratingsDf);
+
+        train.repartition(1).write.mode(SaveMode.Overwrite).csv(outputFilesLocation) //.map(r => (r.user, r.item, r.rating))
         val file = new File(outputFilesLocation).listFiles.filter(_.getName.startsWith("part")).lift(0).get
         println("file: "+file)
         file.renameTo(new File(outputFilesLocation+"/model.csv"))
@@ -236,6 +242,17 @@ object MahoutModelCreation {
             ensurePath.ensure(curator.getCurator.getZookeeperClient)
             curator.getCurator.setData().forPath(zkPath,(outputFilesLocation).getBytes())
           }
+        }
+
+        //Evaluate for test dataset
+        if(split!=null){
+          val algo = "USER_BASED"
+          val recs = SeldonRecommender.recommend(test, util.Arrays.asList(algo), 50, spark)
+          SeldonEvaluator.evaluate(algo, test, recs)
+
+          train.repartition(1).write.mode(SaveMode.Overwrite).csv(config.inputPath +"/"+ config.client +"/evaluation/"+ algo +"/train/")
+          test.repartition(1).write.mode(SaveMode.Overwrite).csv(config.inputPath +"/"+ config.client +"/evaluation/"+ algo +"/test/")
+          recs.repartition(1).write.mode(SaveMode.Overwrite).csv(config.inputPath +"/"+ config.client +"/evaluation/"+ algo +"/pred/")
         }
       }
       finally

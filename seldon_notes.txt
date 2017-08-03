@@ -373,4 +373,19 @@ To debug:
     c. kubernetes/bin/seldon-up.sh >> dev (kubectl create -f ${STARTUP_DIR}/../conf/dev/server.json)
 
 "--driver-memory", "30g",
-"--executor-memory", "30g", 
+"--executor-memory", "30g",
+
+seldon-cli db --action show
+KUB='jdbc:mysql:replication://mysql:3306,mysql:3306/?characterEncoding=utf8&useServerPrepStmts=true&logger=com.mysql.jdbc.log.StandardLogger&roundRobinLoadBalance=true&transformedBitIsBoolean=true&rewriteBatchedStatements=true'
+LOC='jdbc:mysql:replication://10.0.0.145:3306,10.0.0.145:3306/?characterEncoding=utf8&useServerPrepStmts=true&logger=com.mysql.jdbc.log.StandardLogger&roundRobinLoadBalance=true&transformedBitIsBoolean=true&rewriteBatchedStatements=true'
+JDBC=${LOC}
+seldon-cli db --action setup --db-name ClientDB --db-user root --db-password mypass --db-jdbc ${JDBC}
+seldon-cli db --action commit
+
+
+seldon-cli memcached
+KUB='memcached1:11211,memcached2:11211'
+LOC='10.0.0.223:11211,10.0.0.183:11211'
+SERV=${LOC}
+seldon-cli memcached --action setup --numClients 4 --servers ${SERV}
+seldon-cli memcached --action commit

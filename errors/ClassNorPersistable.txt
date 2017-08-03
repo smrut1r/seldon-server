@@ -1,0 +1,7 @@
+Caused by: org.datanucleus.api.jdo.exceptions.ClassNotPersistenceCapableException: The class "org.apache.hadoop.hive.metastore.model.MVersionTable" is not persistable. This means that it either hasnt been enhanced, or that the enhanced version of the file is not in the CLASSPATH (or is hidden by an unenhanced version), or the Meta-Data/annotations for the class are not found.
+NestedThrowables:
+org.datanucleus.exceptions.ClassNotPersistableException: The class "org.apache.hadoop.hive.metastore.model.MVersionTable" is not persistable. This means that it either hasnt been enhanced, or that the enhanced version of the file is not in the CLASSPATH (or is hidden by an unenhanced version), or the Meta-Data/annotations for the class are not found.
+	at org.datanucleus.api.jdo.NucleusJDOHelper.getJDOExceptionForNucleusException(NucleusJDOHelper.java:476)
+	at org.datanucleus.api.jdo.JDOPersistenceManager.jdoMakePersistent(JDOPersistenceManager.java:725)
+	at org.datanucleus.api.jdo.JDOPersistenceManager.makePersistent(JDOPersistenceManager.java:745)
+	at org.apache.hadoop.hive.metastore.ObjectStore.setMetaStoreSchemaVersion(ObjectStore.java:6773)

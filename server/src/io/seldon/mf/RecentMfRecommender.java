@@ -23,6 +23,8 @@
 
 package io.seldon.mf;
 
+import com.google.common.primitives.Doubles;
+import com.google.common.primitives.Floats;
 import io.seldon.api.Util;
 import io.seldon.api.resource.ConsumerBean;
 import io.seldon.clustering.recommender.ItemRecommendationAlgorithm;
@@ -81,42 +83,41 @@ public class RecentMfRecommender implements ItemRecommendationAlgorithm {
 		if (logger.isDebugEnabled())
 			logger.debug("Recent items of size "+itemsToScore.size()+" -> "+itemsToScore.toString());
 
-        double[] userVector;
-        if (clientStore.productFeaturesInverse != null)
-        {
-        	//fold in user data from their recent history of item interactions
-        	logger.debug("Creating user vector by folding in features");
-        	userVector = foldInUser(itemsToScore, clientStore.productFeaturesInverse, clientStore.idMap);
-        }
-        else
-        {
-        	logger.debug("Creating user vector by averaging features");
-        	userVector = createAvgProductVector(itemsToScore, clientStore.productFeatures);
-        }
-        
-        Set<ItemRecommendationResult> recs = new HashSet<>();
-        if(ctxt.getMode()== RecommendationContext.MODE.INCLUSION){
-            // special case for INCLUSION as it's easier on the cpu.
-            for (Long item : ctxt.getContextItems()){
-            	if (!recentItemInteractions.contains(item))
-            	{
-            		float[] features = clientStore.productFeatures.get(item);
-            		if(features!=null)
-            			recs.add(new ItemRecommendationResult(item, dot(features,userVector)));
-            	}
-            }
+		Set<ItemRecommendationResult> recs = new HashSet<>();
+		double[] userVector = clientStore.userFeatures.get(user) !=null ? Doubles.toArray(Floats.asList(clientStore.userFeatures.get(user))) : null;
 
-        }
+		if(!itemsToScore.isEmpty() || userVector!=null) {
+			if (clientStore.productFeaturesInverse != null) {
+				//fold in user data from their recent history of item interactions
+				logger.debug("Creating user vector by folding in features");
+				userVector = add(userVector, foldInUser(itemsToScore, clientStore.productFeaturesInverse, clientStore.idMap));
+			} else {
+				logger.debug("Creating user vector by averaging features");
+				userVector = add(userVector, createAvgProductVector(itemsToScore, clientStore.productFeatures));
+			}
 
-		if(recs.isEmpty()) {
-           for (Map.Entry<Long, float[]> productFeatures : clientStore.productFeatures.entrySet()) {
-                Long item = productFeatures.getKey().longValue();
-            	if (!recentItemInteractions.contains(item))
-            	{
-            		recs.add(new ItemRecommendationResult(item,dot(productFeatures.getValue(),userVector)));
-            	}
-           }
-        }
+			if (ctxt.getMode() == RecommendationContext.MODE.INCLUSION) {
+				// special case for INCLUSION as it's easier on the cpu.
+				for (Long item : ctxt.getContextItems()) {
+					if (!recentItemInteractions.contains(item)) {
+						float[] features = clientStore.productFeatures.get(item);
+						if (features != null)
+							recs.add(new ItemRecommendationResult(item, dot(features, userVector)));
+					}
+				}
+
+			}
+
+			if(recs.isEmpty()) {
+			   for (Map.Entry<Long, float[]> productFeatures : clientStore.productFeatures.entrySet()) {
+					Long item = productFeatures.getKey().longValue();
+					if (!recentItemInteractions.contains(item))
+					{
+						recs.add(new ItemRecommendationResult(item,dot(productFeatures.getValue(),userVector)));
+					}
+			   }
+			}
+		}
 
         List<ItemRecommendationResult> recsList = Ordering.natural().greatestOf(recs, maxRecsCount);
         if (logger.isDebugEnabled())
@@ -139,7 +140,7 @@ public class RecentMfRecommender implements ItemRecommendationAlgorithm {
     			}
     		}
 		}
-    	RealVector  userFeaturesAsVector = new ArrayRealVector(userFeatures);
+    	RealVector userFeaturesAsVector = new ArrayRealVector(userFeatures);
     	RealVector normalised =  userFeaturesAsVector.mapDivide(userFeaturesAsVector.getL1Norm());
 
     	return normalised.getData();
@@ -177,6 +178,16 @@ public class RecentMfRecommender implements ItemRecommendationAlgorithm {
         }
         return sum;
     }
+
+	private static double[] add(double[] vec1, double[] vec2){
+    	if(vec1==null) return vec2;
+		if(vec2==null) return vec1;
+		double[] vec3 = new double[vec1.length];
+		for (int i = 0; i < vec1.length; i++){
+			vec3[i] = vec1[i] + vec2[i];
+		}
+		return vec3;
+	}
 
 	@Override
 	public String name() {

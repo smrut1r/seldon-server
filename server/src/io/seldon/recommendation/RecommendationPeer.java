@@ -236,7 +236,7 @@ public class RecommendationPeer {
                 currentRecUUID, recsFinal, algKey,currentItemId,numRecentActions, strat, recTag);
     	List<Recommendation> recBeans = new ArrayList<>();
 		for(Map.Entry<Long, Double> entry: recsFinal.entrySet())
-    		recBeans.add(new Recommendation(entry.getKey(), 0, 0.0));
+    		recBeans.add(new Recommendation(entry.getKey(), 0, entry.getValue()));
     	return new RecommendationResult(recBeans, uuid, strat.getName(clientUserId,recTag));
     }
 
