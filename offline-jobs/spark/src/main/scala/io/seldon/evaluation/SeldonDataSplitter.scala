@@ -13,8 +13,6 @@ object SeldonDataSplitter {
   val PERCENTAGE: Float = 0.8f
 
   val client = "ahalife";
-  val folder = "/seldon-data/seldon-models/ahalife"
-  val modelPath = folder + "/evaluation/inputs"
   val dataFile = "/seldon-data/seldon-models/" + client + "/actions/" + SparkUtils.getS3UnixGlob(1, 180) + "/*"
 
   def main(args: Array[String]) {
@@ -41,19 +39,9 @@ object SeldonDataSplitter {
     //ratings.toDF().repartition(1).write.mode(SaveMode.Overwrite).json(preparedFile) //.map(r => (r.user, r.item, r.rating))
 
     val (train, test) = prepareSplits(PERCENTAGE, ratings.toDF("user", "item", "preference"))
-    if(modelPath!=null) {
-      val dir: File = new File(modelPath)
-      if (!dir.exists) {
-        if (!dir.mkdir) {
-          println("Directory " + dir + " could not be created")
-        }
-      }
-      /*train.repartition(1).write.mode(SaveMode.Overwrite).csv(modelPath + "train")
-      test.repartition(1).write.mode(SaveMode.Overwrite).csv(modelPath + "test")*/
-      val algo = "USER_BASED"
-      train.repartition(1).write.mode(SaveMode.Overwrite).csv("/seldon-data/seldon-models/" + client +"/evaluation/"+ algo +"/train/")
-      test.repartition(1).write.mode(SaveMode.Overwrite).csv("/seldon-data/seldon-models/" + client +"/evaluation/"+ algo +"/test/")
-    }
+    val algo = "USER_BASED"
+    train.repartition(1).write.mode(SaveMode.Overwrite).csv("/seldon-data/seldon-models/" + client +"/evaluation/"+ algo +"/train/")
+    test.repartition(1).write.mode(SaveMode.Overwrite).csv("/seldon-data/seldon-models/" + client +"/evaluation/"+ algo +"/test/")
 
     spark.stop()
   }

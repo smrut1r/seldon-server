@@ -104,13 +104,15 @@ object SeldonRecommender {
   }
 
   def main(args: Array[String]) {
-    val spark = SparkSession.builder().appName("test").master("local").getOrCreate()
-    val testData = spark.read.schema(schema).csv(modelPath+"test.csv")
     //algos.add("RECENT_MATRIX_FACTOR")
     //algos.add("RECENT_SIMILAR_ITEMS")
     //algos.add("RECENT_TOPIC_MODEL")
     //algos.add("WORD2VEC")
-    val algo = "USER_BASED"
+    val algo = "RECENT_MATRIX_FACTOR"
+    //val algo = "USER_BASED"
+
+    val spark = SparkSession.builder().appName("test").master("local").getOrCreate()
+    val testData = spark.read.schema(schema).csv("/seldon-data/seldon-models/" + client +"/evaluation/"+ algo +"/test/")
     val recs = recommend(testData, util.Arrays.asList(algo), REC_CNTS, spark)
     recs.repartition(1).write.mode(SaveMode.Overwrite).csv("/seldon-data/seldon-models/" + client +"/evaluation/"+ algo +"/pred/")
     //recommend(modelPath, recPath)

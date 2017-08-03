@@ -247,11 +247,12 @@ object MahoutModelCreation {
         //Evaluate for test dataset
         if(split!=null){
           val algo = "USER_BASED"
+          train.repartition(1).write.mode(SaveMode.Overwrite).csv(config.inputPath +"/"+ config.client +"/evaluation/"+ algo +"/train/")
+          test.repartition(1).write.mode(SaveMode.Overwrite).csv(config.inputPath +"/"+ config.client +"/evaluation/"+ algo +"/test/")
+
           val recs = SeldonRecommender.recommend(test, util.Arrays.asList(algo), 50, spark)
           SeldonEvaluator.evaluate(algo, test, recs)
 
-          train.repartition(1).write.mode(SaveMode.Overwrite).csv(config.inputPath +"/"+ config.client +"/evaluation/"+ algo +"/train/")
-          test.repartition(1).write.mode(SaveMode.Overwrite).csv(config.inputPath +"/"+ config.client +"/evaluation/"+ algo +"/test/")
           recs.repartition(1).write.mode(SaveMode.Overwrite).csv(config.inputPath +"/"+ config.client +"/evaluation/"+ algo +"/pred/")
         }
       }

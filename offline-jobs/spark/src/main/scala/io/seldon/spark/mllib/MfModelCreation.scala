@@ -34,8 +34,8 @@ import org.apache.spark.SparkContext._
 import org.apache.spark.ml.recommendation.{ALS, ALSModel}
 import org.apache.spark.ml.recommendation.ALS.Rating
 import org.apache.spark.mllib.recommendation.MatrixFactorizationModel
-import org.apache.spark.sql.{DataFrame, SQLContext, SparkSession}
-import _root_.io.seldon.evaluation.{SeldonDataSplitter, SeldonRecommender, SeldonEvaluator}
+import org.apache.spark.sql.{DataFrame, SQLContext, SaveMode, SparkSession}
+import _root_.io.seldon.evaluation.{SeldonDataSplitter, SeldonEvaluator, SeldonRecommender}
 
 import scala.collection.mutable.ArrayBuffer
 //import org.apache.spark.mllib.recommendation.{Rating, ALS, MatrixFactorizationModel}
@@ -171,9 +171,13 @@ class MfModelCreation(private val spark : SparkSession,config : MfConfig) {
     //Evaluate for test dataset
     if(split!=null){
       val algo = "RECENT_MATRIX_FACTOR"
-      val algos = util.Arrays.asList(algo)
-      val recs = SeldonRecommender.recommend(test, algos, 50, spark)
+      train.repartition(1).write.mode(SaveMode.Overwrite).csv(config.inputPath +"/"+ config.client +"/evaluation/"+ algo +"/train/")
+      test.repartition(1).write.mode(SaveMode.Overwrite).csv(config.inputPath +"/"+ config.client +"/evaluation/"+ algo +"/test/")
+
+      val recs = SeldonRecommender.recommend(test, util.Arrays.asList(algo), 50, spark)
       SeldonEvaluator.evaluate(algo, test, recs)
+
+      recs.repartition(1).write.mode(SaveMode.Overwrite).csv(config.inputPath +"/"+ config.client +"/evaluation/"+ algo +"/pred/")
     }
 
     model.userFactors.unpersist()
