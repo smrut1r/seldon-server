@@ -18,7 +18,7 @@
     <packaging>${project.packaging}</packaging>
 
     <properties>
-        <spring.version>4.1.0.RELEASE</spring.version>
+        <spring.version>5.2.21.RELEASE</spring.version>
         <curator.version>2.7.1</curator.version>
         <mahout.version>0.13.0</mahout.version>
         <project.packaging>war</project.packaging>
